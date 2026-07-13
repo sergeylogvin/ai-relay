@@ -1,6 +1,10 @@
 import { ConversationLibrary } from "./library/library.js";
 import { BrowserStorageLibraryAdapter } from "./library/browser-storage-adapter.js";
 import {
+  importLibraryBackup,
+  serializeLibraryBackup
+} from "./library/backup.js";
+import {
   buildContinuationPrompt,
   getProviderUrl
 } from "./core/continuation.js";
@@ -11,6 +15,15 @@ const library = new ConversationLibrary(
 
 const searchInput = document.querySelector("#searchInput");
 const providerFilter = document.querySelector("#providerFilter");
+const exportLibraryButton = document.querySelector(
+  "#exportLibraryButton"
+);
+const importLibraryButton = document.querySelector(
+  "#importLibraryButton"
+);
+const importLibraryInput = document.querySelector(
+  "#importLibraryInput"
+);
 const refreshButton = document.querySelector("#refreshButton");
 const resultCount = document.querySelector("#resultCount");
 const status = document.querySelector("#status");
@@ -227,6 +240,72 @@ providerFilter.addEventListener("change", () => {
   applyFilters().catch((error) => {
     setStatus(error instanceof Error ? error.message : "Filter failed.");
   });
+});
+
+exportLibraryButton.addEventListener("click", async () => {
+  exportLibraryButton.disabled = true;
+
+  try {
+    const records = await library.list();
+    const content = serializeLibraryBackup(records);
+    const date = new Date().toISOString().slice(0, 10);
+
+    downloadText(
+      `ai-relay-library-${date}.json`,
+      content,
+      "application/json;charset=utf-8"
+    );
+
+    setStatus(`Exported ${records.length} conversation(s).`);
+  } catch (error) {
+    setStatus(
+      error instanceof Error
+        ? error.message
+        : "Unable to export the library."
+    );
+  } finally {
+    exportLibraryButton.disabled = false;
+  }
+});
+
+importLibraryButton.addEventListener("click", () => {
+  importLibraryInput.value = "";
+  importLibraryInput.click();
+});
+
+importLibraryInput.addEventListener("change", async () => {
+  const [file] = importLibraryInput.files ?? [];
+
+  if (!file) return;
+
+  importLibraryButton.disabled = true;
+
+  try {
+    const content = await file.text();
+    const replace = globalThis.confirm(
+      "Choose OK to replace the current library. " +
+      "Choose Cancel to merge the backup with existing records."
+    );
+
+    const result = await importLibraryBackup(library, content, {
+      replace
+    });
+
+    closeDetails();
+    await loadLibrary();
+    setStatus(
+      `Imported ${result.imported} conversation(s) in ${result.mode} mode.`
+    );
+  } catch (error) {
+    setStatus(
+      error instanceof Error
+        ? error.message
+        : "Unable to import the library backup."
+    );
+  } finally {
+    importLibraryButton.disabled = false;
+    importLibraryInput.value = "";
+  }
 });
 
 refreshButton.addEventListener("click", loadLibrary);

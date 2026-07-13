@@ -1,3 +1,10 @@
+export {
+  LIBRARY_BACKUP_VERSION,
+  createLibraryBackup,
+  importLibraryBackup,
+  serializeLibraryBackup,
+  validateLibraryBackup
+} from "./backup.js";
 export { BrowserStorageLibraryAdapter, DEFAULT_STORAGE_KEY } from "./browser-storage-adapter.js";
 export {
   LibraryRecordNotFoundError,
