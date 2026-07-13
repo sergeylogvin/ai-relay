@@ -1,4 +1,5 @@
 import { detectProvider } from "./provider-detection.js";
+import { createZipArchive } from "./export/zip.js";
 
 const captureButton = document.querySelector("#captureButton");
 const copyMarkdownButton = document.querySelector("#copyMarkdownButton");
@@ -7,6 +8,7 @@ const downloadMarkdownButton = document.querySelector(
   "#downloadMarkdownButton"
 );
 const downloadJsonButton = document.querySelector("#downloadJsonButton");
+const downloadZipButton = document.querySelector("#downloadZipButton");
 const clearButton = document.querySelector("#clearButton");
 const preview = document.querySelector("#preview");
 const status = document.querySelector("#status");
@@ -36,6 +38,7 @@ function setButtonsEnabled(enabled) {
   copyJsonButton.disabled = !enabled;
   downloadMarkdownButton.disabled = !enabled;
   downloadJsonButton.disabled = !enabled;
+  downloadZipButton.disabled = !enabled;
   clearButton.disabled = !enabled;
 }
 
@@ -157,6 +160,45 @@ downloadJsonButton.addEventListener("click", () => {
   const base = safeFilename(lastCapture?.title, "ai-relay-capture");
   downloadText(`${base}.json`, json, "application/json;charset=utf-8");
   setStatus("JSON download started.");
+});
+
+downloadZipButton.addEventListener("click", () => {
+  const files = lastCapture?.files;
+  if (!files) return;
+
+  const metadata = JSON.stringify(
+    {
+      schemaVersion: lastCapture.schemaVersion,
+      provider: lastCapture.provider,
+      title: lastCapture.title,
+      url: lastCapture.url,
+      capturedAt: lastCapture.capturedAt,
+      messageCount: lastCapture.messageCount,
+      checksum: lastCapture.checksum
+    },
+    null,
+    2
+  );
+
+  const archive = createZipArchive({
+    ...files,
+    "metadata.json": `${metadata}
+`
+  });
+
+  const blob = new Blob([archive], {
+    type: "application/zip"
+  });
+  const url = URL.createObjectURL(blob);
+  const anchor = document.createElement("a");
+  const base = safeFilename(lastCapture?.title, "ai-relay-export");
+
+  anchor.href = url;
+  anchor.download = `${base}.zip`;
+  anchor.click();
+
+  URL.revokeObjectURL(url);
+  setStatus("ZIP package download started.");
 });
 
 clearButton.addEventListener("click", reset);
