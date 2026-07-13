@@ -44,5 +44,6 @@
         "https://gemini.google.com/*"
       ]
     }
-  ]
+  ],
+  "options_page": "library.html"
 }
