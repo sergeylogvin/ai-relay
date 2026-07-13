@@ -8,6 +8,12 @@ import {
   buildContinuationPrompt,
   getProviderUrl
 } from "./core/continuation.js";
+import {
+  filterLibraryRecords,
+  listLibraryTags,
+  sortLibraryRecords,
+  updateRecordOrganization
+} from "./library/organization.js";
 
 const library = new ConversationLibrary(
   new BrowserStorageLibraryAdapter()
@@ -15,6 +21,60 @@ const library = new ConversationLibrary(
 
 const searchInput = document.querySelector("#searchInput");
 const providerFilter = document.querySelector("#providerFilter");
+
+const tagFilter = document.createElement("select");
+tagFilter.id = "tagFilter";
+tagFilter.setAttribute("aria-label", "Tag");
+tagFilter.append(new Option("All tags", ""));
+
+const pinnedOnlyLabel = document.createElement("label");
+pinnedOnlyLabel.className = "checkbox-filter";
+const pinnedOnlyFilter = document.createElement("input");
+pinnedOnlyFilter.id = "pinnedOnlyFilter";
+pinnedOnlyFilter.type = "checkbox";
+pinnedOnlyLabel.append(
+  pinnedOnlyFilter,
+  document.createTextNode("Pinned only")
+);
+
+providerFilter.insertAdjacentElement("afterend", pinnedOnlyLabel);
+providerFilter.insertAdjacentElement("afterend", tagFilter);
+
+const organizationPanel = document.createElement("section");
+organizationPanel.className = "organization-panel";
+organizationPanel.innerHTML = `
+  <h3>Organize</h3>
+  <label>
+    Tags
+    <input
+      id="recordTagsInput"
+      type="text"
+      placeholder="project, research, personal"
+    />
+  </label>
+  <label class="checkbox-filter">
+    <input id="recordPinnedInput" type="checkbox" />
+    Pin this conversation
+  </label>
+  <button id="saveOrganizationButton" type="button">
+    Save organization
+  </button>
+`;
+
+const detailActions = document.querySelector(".detail-actions");
+if (!detailActions) {
+  throw new Error("Library detail actions were not found.");
+}
+detailActions.insertAdjacentElement("beforebegin", organizationPanel);
+
+const recordTagsInput = organizationPanel.querySelector("#recordTagsInput");
+const recordPinnedInput = organizationPanel.querySelector(
+  "#recordPinnedInput"
+);
+const saveOrganizationButton = organizationPanel.querySelector(
+  "#saveOrganizationButton"
+);
+saveOrganizationButton.disabled = true;
 const exportLibraryButton = document.querySelector(
   "#exportLibraryButton"
 );
@@ -53,6 +113,7 @@ const continuationProviderButtons = document.querySelectorAll(
 );
 
 let selectedRecord = null;
+let allRecords = [];
 
 function setStatus(message) {
   status.textContent = message;
@@ -122,6 +183,18 @@ async function openContinuationProvider(provider) {
   chrome.tabs.create({ url });
 }
 
+function updateTagOptions(records) {
+  const current = tagFilter.value;
+  const tags = listLibraryTags(records);
+
+  tagFilter.replaceChildren(
+    new Option("All tags", ""),
+    ...tags.map((tag) => new Option(tag, tag))
+  );
+
+  tagFilter.value = tags.includes(current) ? current : "";
+}
+
 function updateProviderOptions(allRecords) {
   const current = providerFilter.value;
   const providers = [...new Set(
@@ -145,6 +218,9 @@ function renderDetails(record) {
   detailMessageCount.textContent = String(record.messageCount);
   detailChecksum.textContent = record.checksum ?? "—";
   handoffPreview.value = record.handoffMarkdown;
+  recordTagsInput.value = (record.tags ?? []).join(", ");
+  recordPinnedInput.checked = Boolean(record.pinned);
+  saveOrganizationButton.disabled = false;
 
   if (record.sourceUrl) {
     detailSource.href = record.sourceUrl;
@@ -161,6 +237,9 @@ function renderDetails(record) {
 
 function closeDetails() {
   selectedRecord = null;
+  recordTagsInput.value = "";
+  recordPinnedInput.checked = false;
+  saveOrganizationButton.disabled = true;
   detailPanel.hidden = true;
 }
 
@@ -192,13 +271,14 @@ function renderRecords(filteredRecords) {
 }
 
 async function applyFilters() {
-  const query = searchInput.value.trim();
-  const provider = providerFilter.value || null;
-
-  const filtered = await library.list({
-    query,
-    provider
-  });
+  const filtered = sortLibraryRecords(
+    filterLibraryRecords(allRecords, {
+      query: searchInput.value,
+      provider: providerFilter.value,
+      tag: tagFilter.value,
+      pinnedOnly: pinnedOnlyFilter.checked
+    })
+  );
 
   renderRecords(filtered);
   setStatus(
@@ -208,13 +288,16 @@ async function applyFilters() {
   );
 }
 
+
+
 async function loadLibrary() {
   refreshButton.disabled = true;
   setStatus("Loading library…");
 
   try {
-    const records = await library.list();
-    updateProviderOptions(records);
+    allRecords = await library.list();
+    updateProviderOptions(allRecords);
+    updateTagOptions(allRecords);
     await applyFilters();
   } catch (error) {
     recordList.replaceChildren();
@@ -240,6 +323,48 @@ providerFilter.addEventListener("change", () => {
   applyFilters().catch((error) => {
     setStatus(error instanceof Error ? error.message : "Filter failed.");
   });
+});
+
+tagFilter.addEventListener("change", () => {
+  applyFilters().catch((error) => {
+    setStatus(error instanceof Error ? error.message : "Filter failed.");
+  });
+});
+
+pinnedOnlyFilter.addEventListener("change", () => {
+  applyFilters().catch((error) => {
+    setStatus(error instanceof Error ? error.message : "Filter failed.");
+  });
+});
+
+saveOrganizationButton.addEventListener("click", async () => {
+  if (!selectedRecord) return;
+
+  saveOrganizationButton.disabled = true;
+
+  try {
+    const updated = updateRecordOrganization(selectedRecord, {
+      tags: recordTagsInput.value
+        .split(",")
+        .map((tag) => tag.trim())
+        .filter(Boolean),
+      pinned: recordPinnedInput.checked
+    });
+
+    await library.save(updated);
+    selectedRecord = updated;
+    await loadLibrary();
+    renderDetails(updated);
+    setStatus("Conversation organization updated.");
+  } catch (error) {
+    setStatus(
+      error instanceof Error
+        ? error.message
+        : "Unable to update conversation organization."
+    );
+  } finally {
+    saveOrganizationButton.disabled = false;
+  }
 });
 
 exportLibraryButton.addEventListener("click", async () => {
