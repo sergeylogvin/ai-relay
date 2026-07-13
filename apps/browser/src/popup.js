@@ -12,6 +12,7 @@ const downloadMarkdownButton = document.querySelector(
 const downloadJsonButton = document.querySelector("#downloadJsonButton");
 const downloadZipButton = document.querySelector("#downloadZipButton");
 const saveLibraryButton = document.querySelector("#saveLibraryButton");
+const openLibraryButton = document.querySelector("#openLibraryButton");
 const clearButton = document.querySelector("#clearButton");
 const preview = document.querySelector("#preview");
 const status = document.querySelector("#status");
@@ -259,6 +260,10 @@ saveLibraryButton.addEventListener("click", async () => {
   } finally {
     saveLibraryButton.disabled = false;
   }
+});
+
+openLibraryButton.addEventListener("click", () => {
+  chrome.runtime.openOptionsPage();
 });
 
 clearButton.addEventListener("click", reset);
