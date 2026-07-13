@@ -1,5 +1,9 @@
 import { ConversationLibrary } from "./library/library.js";
 import { BrowserStorageLibraryAdapter } from "./library/browser-storage-adapter.js";
+import {
+  buildContinuationPrompt,
+  getProviderUrl
+} from "./core/continuation.js";
 
 const library = new ConversationLibrary(
   new BrowserStorageLibraryAdapter()
@@ -28,6 +32,12 @@ const downloadHandoffButton = document.querySelector(
   "#downloadHandoffButton"
 );
 const deleteRecordButton = document.querySelector("#deleteRecordButton");
+const copyContinuationButton = document.querySelector(
+  "#copyContinuationButton"
+);
+const continuationProviderButtons = document.querySelectorAll(
+  "[data-provider]"
+);
 
 let selectedRecord = null;
 
@@ -69,6 +79,34 @@ function downloadText(filename, content, type) {
   anchor.click();
 
   URL.revokeObjectURL(url);
+}
+
+async function copyContinuationPrompt(targetProvider = null) {
+  if (!selectedRecord) return;
+
+  const prompt = buildContinuationPrompt(selectedRecord, {
+    targetProvider
+  });
+
+  await navigator.clipboard.writeText(prompt);
+  setStatus(
+    targetProvider
+      ? `Continuation prompt for ${targetProvider} copied.`
+      : "Continuation prompt copied."
+  );
+}
+
+async function openContinuationProvider(provider) {
+  if (!selectedRecord) return;
+
+  await copyContinuationPrompt(provider);
+  const url = getProviderUrl(provider);
+
+  if (!url) {
+    throw new Error(`Unsupported provider: ${provider}`);
+  }
+
+  chrome.tabs.create({ url });
 }
 
 function updateProviderOptions(allRecords) {
@@ -206,6 +244,20 @@ copyHandoffButton.addEventListener("click", async () => {
   await navigator.clipboard.writeText(selectedRecord.handoffMarkdown);
   setStatus("Handoff copied.");
 });
+
+copyContinuationButton.addEventListener("click", () => {
+  copyContinuationPrompt().catch((error) => {
+    setStatus(error instanceof Error ? error.message : "Unable to copy prompt.");
+  });
+});
+
+for (const button of continuationProviderButtons) {
+  button.addEventListener("click", () => {
+    openContinuationProvider(button.dataset.provider).catch((error) => {
+      setStatus(error instanceof Error ? error.message : "Unable to open provider.");
+    });
+  });
+}
 
 downloadHandoffButton.addEventListener("click", () => {
   if (!selectedRecord) return;

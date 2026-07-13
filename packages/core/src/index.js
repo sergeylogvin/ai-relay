@@ -1,3 +1,8 @@
+export {
+  buildContinuationPrompt,
+  getProviderUrl,
+  listContinuationProviders
+} from "./continuation.js";
 export { DomainValidationError } from "./errors.js";
 export { createProjectState } from "./project-state.js";
 export { PROJECT_CLASSIFICATIONS, createProject, updateProjectState } from "./project.js";

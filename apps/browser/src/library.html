@@ -99,6 +99,17 @@
           <label for="handoffPreview">Handoff preview</label>
           <textarea id="handoffPreview" rows="24" readonly></textarea>
 
+          <section class="continue-panel" aria-labelledby="continueHeading">
+            <h3 id="continueHeading">Continue conversation</h3>
+            <p>Copy a provider-ready prompt or open a new chat.</p>
+            <div class="continue-actions">
+              <button id="copyContinuationButton" type="button">Copy continuation prompt</button>
+              <button data-provider="chatgpt" type="button">Open ChatGPT</button>
+              <button data-provider="claude" type="button">Open Claude</button>
+              <button data-provider="gemini" type="button">Open Gemini</button>
+            </div>
+          </section>
+
           <div class="detail-actions">
             <button id="copyHandoffButton" type="button">Copy handoff</button>
             <button id="downloadHandoffButton" type="button">
