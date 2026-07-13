@@ -1,0 +1,44 @@
+name: Feature request
+description: Propose a focused product improvement
+title: "[Feature]: "
+labels: ["enhancement", "triage"]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What user problem should this solve?
+    validations:
+      required: true
+  - type: textarea
+    id: proposal
+    attributes:
+      label: Proposed solution
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+  - type: dropdown
+    id: area
+    attributes:
+      label: Product area
+      options:
+        - Core
+        - Browser extension
+        - macOS app
+        - Provider adapter
+        - Security and privacy
+        - Storage and export
+        - Documentation
+    validations:
+      required: true
+  - type: checkboxes
+    id: principles
+    attributes:
+      label: Product principles
+      options:
+        - label: The proposal is compatible with local-first operation.
+        - label: The proposal does not require telemetry by default.
+        - label: The proposal avoids unnecessary access to user data.
