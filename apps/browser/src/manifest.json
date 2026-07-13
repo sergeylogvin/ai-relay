@@ -33,7 +33,9 @@
     {
       "resources": [
         "providers/*.js",
-        "providers/*/*.js"
+        "providers/*/*.js",
+        "core/*.js",
+        "export/*.js"
       ],
       "matches": [
         "https://claude.ai/*",
