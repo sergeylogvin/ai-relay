@@ -1,0 +1,8 @@
+{
+  "name": "@ai-relay/provider-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Contracts for AI provider adapters.",
+  "license": "Apache-2.0",
+  "type": "module"
+}

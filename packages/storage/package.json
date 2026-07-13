@@ -1,0 +1,8 @@
+{
+  "name": "@ai-relay/storage",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Local persistence and import/export boundaries.",
+  "license": "Apache-2.0",
+  "type": "module"
+}

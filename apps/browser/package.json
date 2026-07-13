@@ -1,0 +1,7 @@
+{
+  "name": "@ai-relay/browser",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Safari and Chromium browser application for AI Relay.",
+  "license": "Apache-2.0"
+}
