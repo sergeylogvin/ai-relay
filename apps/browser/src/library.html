@@ -17,7 +17,21 @@
           </p>
         </div>
 
-        <button id="refreshButton" type="button">Refresh</button>
+        <div class="header-actions">
+          <button id="exportLibraryButton" type="button">
+            Export library
+          </button>
+          <button id="importLibraryButton" type="button">
+            Import library
+          </button>
+          <button id="refreshButton" type="button">Refresh</button>
+          <input
+            id="importLibraryInput"
+            type="file"
+            accept="application/json,.json"
+            hidden
+          />
+        </div>
       </header>
 
       <section class="toolbar" aria-label="Library controls">
