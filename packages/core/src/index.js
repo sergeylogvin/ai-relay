@@ -4,3 +4,8 @@ export { PROJECT_CLASSIFICATIONS, createProject, updateProjectState } from "./pr
 export { createSession } from "./session.js";
 export { createSnapshot } from "./snapshot.js";
 export { HANDOFF_MODES, createHandoff, formatHandoffMarkdown } from "./handoff.js";
+
+export {
+  ContextEngine,
+  formatContextHandoff,
+} from "./context-engine.js";
