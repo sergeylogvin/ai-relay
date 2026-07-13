@@ -6,3 +6,4 @@ export {
   EXPORT_SCHEMA_VERSION
 } from "./schema.js";
 export { serializeDeterministically } from "./serialize.js";
+export { createZipArchive } from "./zip.js";
