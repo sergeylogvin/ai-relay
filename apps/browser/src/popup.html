@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>AI Relay</title>
+    <link rel="stylesheet" href="popup.css" />
+  </head>
+  <body>
+    <main class="shell">
+      <header>
+        <div>
+          <h1>AI Relay</h1>
+          <p>Capture this AI conversation.</p>
+        </div>
+        <span id="providerBadge" class="badge">Unknown</span>
+      </header>
+
+      <section class="panel">
+        <button id="captureButton" class="primary" type="button">
+          Capture current conversation
+        </button>
+
+        <div id="status" class="status" role="status" aria-live="polite">
+          Ready.
+        </div>
+
+        <label for="preview">Preview</label>
+        <textarea
+          id="preview"
+          rows="16"
+          readonly
+          placeholder="Captured handoff will appear here."
+        ></textarea>
+
+        <div class="actions">
+          <button id="copyButton" type="button" disabled>Copy handoff</button>
+          <button id="clearButton" type="button" disabled>Clear</button>
+        </div>
+      </section>
+
+      <footer>
+        Local only. Nothing is sent automatically.
+      </footer>
+    </main>
+
+    <script type="module" src="popup.js"></script>
+  </body>
+</html>
