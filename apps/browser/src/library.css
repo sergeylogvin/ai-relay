@@ -284,3 +284,28 @@ textarea {
     position: static;
   }
 }
+
+.continue-panel {
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid color-mix(in srgb, AccentColor 24%, transparent);
+  border-radius: 10px;
+  background: color-mix(in srgb, AccentColor 6%, Canvas);
+}
+
+.continue-panel h3 {
+  margin: 0 0 6px;
+  font-size: 15px;
+}
+
+.continue-panel p {
+  margin-bottom: 12px;
+  font-size: 13px;
+  opacity: 0.72;
+}
+
+.continue-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
