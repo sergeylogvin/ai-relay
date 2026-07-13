@@ -1,94 +1,15 @@
-importScriptsNotAvailable();
-
-function importScriptsNotAvailable() {
-  // Marker to keep this file valid in both browser runtime and static tests.
-}
-
-const ROLE_SELECTORS = Object.freeze({
-  user: [
-    '[data-message-author-role="user"]',
-    '[data-testid*="user"]',
-    '[class*="user-message"]',
-    '[class*="human-message"]'
-  ],
-  assistant: [
-    '[data-message-author-role="assistant"]',
-    '[data-testid*="assistant"]',
-    '[class*="assistant-message"]',
-    '[class*="model-response"]'
-  ]
-});
-
-function cleanText(value) {
-  return String(value ?? "")
-    .replace(/\u00a0/g, " ")
-    .replace(/[ \t]+\n/g, "\n")
-    .replace(/\n{3,}/g, "\n\n")
-    .trim();
-}
-
-function detectProvider() {
-  const hostname = window.location.hostname;
-
-  if (hostname === "claude.ai") return "claude";
-  if (hostname === "chatgpt.com") return "chatgpt";
-  if (hostname === "gemini.google.com") return "gemini";
-
-  return "unknown";
-}
-
-function collectMessages() {
-  const found = [];
-
-  for (const [role, selectors] of Object.entries(ROLE_SELECTORS)) {
-    for (const selector of selectors) {
-      for (const element of document.querySelectorAll(selector)) {
-        const content = cleanText(element.innerText ?? element.textContent);
-        if (!content) continue;
-
-        found.push({ role, content, element });
-      }
-    }
-  }
-
-  found.sort((left, right) => {
-    if (left.element === right.element) return 0;
-
-    const relation = left.element.compareDocumentPosition(right.element);
-    if (relation & Node.DOCUMENT_POSITION_FOLLOWING) return -1;
-    if (relation & Node.DOCUMENT_POSITION_PRECEDING) return 1;
-    return 0;
-  });
-
-  const result = [];
-  const seen = new Set();
-
-  for (const item of found) {
-    const key = `${item.role}:${item.content}`;
-    if (seen.has(key)) continue;
-    seen.add(key);
-
-    result.push({
-      role: item.role,
-      content: item.content
-    });
-  }
-
-  return result;
-}
-
-function formatRawHandoff(provider, title, messages) {
+function formatRawHandoff(conversation) {
   const lines = [
     "# AI Relay Capture",
     "",
-    `Provider: ${provider}`,
-    `Title: ${title || "Untitled conversation"}`,
+    `Provider: ${conversation.provider}`,
+    `Title: ${conversation.title || "Untitled conversation"}`,
     "",
     "## Conversation",
     ""
   ];
 
-  for (const message of messages) {
+  for (const message of conversation.messages) {
     lines.push(
       `### ${message.role.toUpperCase()}`,
       "",
@@ -106,31 +27,43 @@ function formatRawHandoff(provider, title, messages) {
   return lines.join("\n").trim();
 }
 
+async function loadRegistry() {
+  const moduleUrl = chrome.runtime.getURL("providers/registry.js");
+  const { ProviderRegistry } = await import(moduleUrl);
+
+  return new ProviderRegistry();
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type !== "AI_RELAY_CAPTURE") return false;
 
-  try {
-    const provider = detectProvider();
-    const messages = collectMessages();
+  (async () => {
+    try {
+      const registry = await loadRegistry();
+      const conversation = registry.readConversation(
+        window.location.href,
+        document
+      );
 
-    sendResponse({
-      ok: true,
-      capture: {
-        schemaVersion: 1,
-        provider,
-        title: document.title,
-        url: window.location.href,
-        capturedAt: new Date().toISOString(),
-        messages,
-        markdown: formatRawHandoff(provider, document.title, messages)
-      }
-    });
-  } catch (error) {
-    sendResponse({
-      ok: false,
-      error: error instanceof Error ? error.message : String(error)
-    });
-  }
+      sendResponse({
+        ok: true,
+        capture: {
+          schemaVersion: 1,
+          provider: conversation.provider,
+          title: conversation.title,
+          url: conversation.url,
+          capturedAt: new Date().toISOString(),
+          messages: conversation.messages,
+          markdown: formatRawHandoff(conversation)
+        }
+      });
+    } catch (error) {
+      sendResponse({
+        ok: false,
+        error: error instanceof Error ? error.message : String(error)
+      });
+    }
+  })();
 
   return true;
 });
