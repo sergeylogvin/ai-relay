@@ -8,10 +8,10 @@
   </head>
   <body>
     <main class="shell">
-      <header>
+      <header class="header">
         <div>
           <h1>AI Relay</h1>
-          <p>Capture this AI conversation.</p>
+          <p>Capture and continue across AI providers.</p>
         </div>
         <span id="providerBadge" class="badge">Unknown</span>
       </header>
@@ -25,7 +25,22 @@
           Ready.
         </div>
 
-        <label for="preview">Preview</label>
+        <dl id="metadata" class="metadata" hidden>
+          <div>
+            <dt>Title</dt>
+            <dd id="titleValue">—</dd>
+          </div>
+          <div>
+            <dt>Messages</dt>
+            <dd id="messageCountValue">0</dd>
+          </div>
+          <div>
+            <dt>Checksum</dt>
+            <dd id="checksumValue" class="checksum">—</dd>
+          </div>
+        </dl>
+
+        <label for="preview">Handoff preview</label>
         <textarea
           id="preview"
           rows="16"
@@ -34,9 +49,26 @@
         ></textarea>
 
         <div class="actions">
-          <button id="copyButton" type="button" disabled>Copy handoff</button>
-          <button id="clearButton" type="button" disabled>Clear</button>
+          <button id="copyMarkdownButton" type="button" disabled>
+            Copy Markdown
+          </button>
+          <button id="copyJsonButton" type="button" disabled>
+            Copy JSON
+          </button>
         </div>
+
+        <div class="actions">
+          <button id="downloadMarkdownButton" type="button" disabled>
+            Download Markdown
+          </button>
+          <button id="downloadJsonButton" type="button" disabled>
+            Download JSON
+          </button>
+        </div>
+
+        <button id="clearButton" class="secondary" type="button" disabled>
+          Clear
+        </button>
       </section>
 
       <footer>

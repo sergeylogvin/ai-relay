@@ -11,7 +11,7 @@
 
 body {
   margin: 0;
-  min-width: 380px;
+  min-width: 420px;
   background: Canvas;
   color: CanvasText;
 }
@@ -20,7 +20,7 @@ body {
   padding: 16px;
 }
 
-header {
+.header {
   display: flex;
   align-items: flex-start;
   justify-content: space-between;
@@ -75,10 +75,43 @@ button:disabled {
   font-weight: 650;
 }
 
+.secondary {
+  background: transparent;
+}
+
 .status {
   min-height: 20px;
   font-size: 13px;
   opacity: 0.8;
+}
+
+.metadata {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
+  border-radius: 8px;
+}
+
+.metadata div {
+  display: grid;
+  grid-template-columns: 84px 1fr;
+  gap: 8px;
+}
+
+.metadata dt {
+  font-weight: 650;
+}
+
+.metadata dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+
+.checksum {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 11px;
 }
 
 label {
