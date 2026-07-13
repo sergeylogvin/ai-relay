@@ -1,37 +1,26 @@
-function formatRawHandoff(conversation) {
-  const lines = [
-    "# AI Relay Capture",
-    "",
-    `Provider: ${conversation.provider}`,
-    `Title: ${conversation.title || "Untitled conversation"}`,
-    "",
-    "## Conversation",
-    ""
-  ];
+async function loadRuntime() {
+  const [providersModule, coreModule, exportModule] = await Promise.all([
+    import(chrome.runtime.getURL("providers/registry.js")),
+    import(chrome.runtime.getURL("core/context-engine.js")),
+    import(chrome.runtime.getURL("export/exporter.js"))
+  ]);
 
-  for (const message of conversation.messages) {
-    lines.push(
-      `### ${message.role.toUpperCase()}`,
-      "",
-      message.content,
-      ""
-    );
-  }
-
-  lines.push(
-    "## Continuation instruction",
-    "",
-    "Continue from this conversation. Preserve prior decisions and constraints. Ask before assuming missing facts."
-  );
-
-  return lines.join("\n").trim();
+  return {
+    ProviderRegistry: providersModule.ProviderRegistry,
+    ContextEngine: coreModule.ContextEngine,
+    ExportEngine: exportModule.ExportEngine
+  };
 }
 
-async function loadRegistry() {
-  const moduleUrl = chrome.runtime.getURL("providers/registry.js");
-  const { ProviderRegistry } = await import(moduleUrl);
+function createProjectId(conversation) {
+  const provider = conversation.provider ?? "unknown";
+  const title = conversation.title ?? "untitled";
 
-  return new ProviderRegistry();
+  return `${provider}:${title}`
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80) || "ai-relay-project";
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
@@ -39,22 +28,55 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   (async () => {
     try {
-      const registry = await loadRegistry();
+      const { ProviderRegistry, ContextEngine, ExportEngine } =
+        await loadRuntime();
+
+      const registry = new ProviderRegistry();
       const conversation = registry.readConversation(
         window.location.href,
         document
       );
 
+      if (!conversation.messages.length) {
+        throw new Error(
+          "No visible conversation messages were found on this page."
+        );
+      }
+
+      const contextEngine = new ContextEngine({
+        recentMessageLimit: 12
+      });
+
+      const snapshot = contextEngine.createSnapshot({
+        projectId: createProjectId(conversation),
+        provider: conversation.provider,
+        messages: conversation.messages,
+        capturedAt: new Date().toISOString()
+      });
+
+      const handoff = contextEngine.createHandoff(snapshot);
+
+      const exportEngine = new ExportEngine();
+      const exported = await exportEngine.create({
+        conversation,
+        handoff,
+        createdAt: snapshot.capturedAt
+      });
+
       sendResponse({
         ok: true,
         capture: {
-          schemaVersion: 1,
+          schemaVersion: exported.schemaVersion,
           provider: conversation.provider,
           title: conversation.title,
           url: conversation.url,
-          capturedAt: new Date().toISOString(),
-          messages: conversation.messages,
-          markdown: formatRawHandoff(conversation)
+          capturedAt: exported.createdAt,
+          messageCount: conversation.messages.length,
+          snapshot,
+          handoff,
+          files: exported.files,
+          checksum: exported.checksum,
+          markdown: exported.files["handoff.md"]
         }
       });
     } catch (error) {

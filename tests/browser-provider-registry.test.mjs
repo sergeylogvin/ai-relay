@@ -32,7 +32,9 @@ test("manifest exposes provider modules only on supported hosts", async () => {
     {
       resources: [
         "providers/*.js",
-        "providers/*/*.js"
+        "providers/*/*.js",
+        "core/*.js",
+        "export/*.js"
       ],
       matches: [
         "https://claude.ai/*",
