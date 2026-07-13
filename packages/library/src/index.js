@@ -1,3 +1,4 @@
+export { BrowserStorageLibraryAdapter, DEFAULT_STORAGE_KEY } from "./browser-storage-adapter.js";
 export {
   LibraryRecordNotFoundError,
   LibraryValidationError

@@ -1,5 +1,7 @@
 import { detectProvider } from "./provider-detection.js";
 import { createZipArchive } from "./export/zip.js";
+import { ConversationLibrary } from "./library/library.js";
+import { BrowserStorageLibraryAdapter } from "./library/browser-storage-adapter.js";
 
 const captureButton = document.querySelector("#captureButton");
 const copyMarkdownButton = document.querySelector("#copyMarkdownButton");
@@ -9,6 +11,7 @@ const downloadMarkdownButton = document.querySelector(
 );
 const downloadJsonButton = document.querySelector("#downloadJsonButton");
 const downloadZipButton = document.querySelector("#downloadZipButton");
+const saveLibraryButton = document.querySelector("#saveLibraryButton");
 const clearButton = document.querySelector("#clearButton");
 const preview = document.querySelector("#preview");
 const status = document.querySelector("#status");
@@ -39,6 +42,7 @@ function setButtonsEnabled(enabled) {
   downloadMarkdownButton.disabled = !enabled;
   downloadJsonButton.disabled = !enabled;
   downloadZipButton.disabled = !enabled;
+  saveLibraryButton.disabled = !enabled;
   clearButton.disabled = !enabled;
 }
 
@@ -51,6 +55,24 @@ function reset() {
   checksumValue.textContent = "—";
   setButtonsEnabled(false);
   setStatus("Ready.");
+}
+
+function createLibraryId(capture) {
+  const source = [
+    capture.provider ?? "unknown",
+    capture.url ?? "",
+    capture.title ?? "untitled",
+    capture.checksum ?? capture.capturedAt ?? Date.now()
+  ].join(":");
+
+  let hash = 2166136261;
+
+  for (let index = 0; index < source.length; index += 1) {
+    hash ^= source.charCodeAt(index);
+    hash = Math.imul(hash, 16777619);
+  }
+
+  return `capture-${(hash >>> 0).toString(16).padStart(8, "0")}`;
 }
 
 function safeFilename(value, fallback) {
@@ -199,6 +221,44 @@ downloadZipButton.addEventListener("click", () => {
 
   URL.revokeObjectURL(url);
   setStatus("ZIP package download started.");
+});
+
+saveLibraryButton.addEventListener("click", async () => {
+  if (!lastCapture) return;
+
+  saveLibraryButton.disabled = true;
+  setStatus("Saving to local library…");
+
+  try {
+    const library = new ConversationLibrary(
+      new BrowserStorageLibraryAdapter()
+    );
+
+    await library.save({
+      id: createLibraryId(lastCapture),
+      provider: lastCapture.provider,
+      title: lastCapture.title,
+      sourceUrl: lastCapture.url,
+      createdAt: lastCapture.capturedAt,
+      updatedAt: new Date().toISOString(),
+      messageCount: lastCapture.messageCount,
+      checksum: lastCapture.checksum,
+      handoffMarkdown:
+        lastCapture.files?.["handoff.md"] ?? lastCapture.markdown,
+      captureJson: lastCapture.files?.["capture.json"],
+      tags: []
+    });
+
+    setStatus("Saved to local library.");
+  } catch (error) {
+    setStatus(
+      error instanceof Error
+        ? error.message
+        : "Unable to save this capture."
+    );
+  } finally {
+    saveLibraryButton.disabled = false;
+  }
 });
 
 clearButton.addEventListener("click", reset);
