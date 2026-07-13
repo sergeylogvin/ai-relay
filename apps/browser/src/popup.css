@@ -1,0 +1,112 @@
+:root {
+  color-scheme: light dark;
+  font-family:
+    Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont,
+    "Segoe UI", sans-serif;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-width: 380px;
+  background: Canvas;
+  color: CanvasText;
+}
+
+.shell {
+  padding: 16px;
+}
+
+header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  margin-bottom: 16px;
+}
+
+h1 {
+  margin: 0;
+  font-size: 20px;
+}
+
+p {
+  margin: 4px 0 0;
+  opacity: 0.72;
+}
+
+.badge {
+  border: 1px solid color-mix(in srgb, CanvasText 18%, transparent);
+  border-radius: 999px;
+  padding: 5px 9px;
+  font-size: 12px;
+  text-transform: capitalize;
+}
+
+.panel {
+  display: grid;
+  gap: 10px;
+}
+
+button,
+textarea {
+  font: inherit;
+}
+
+button {
+  border: 1px solid color-mix(in srgb, CanvasText 20%, transparent);
+  border-radius: 8px;
+  padding: 9px 12px;
+  cursor: pointer;
+}
+
+button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.primary {
+  border: 0;
+  background: AccentColor;
+  color: AccentColorText;
+  font-weight: 650;
+}
+
+.status {
+  min-height: 20px;
+  font-size: 13px;
+  opacity: 0.8;
+}
+
+label {
+  font-size: 13px;
+  font-weight: 650;
+}
+
+textarea {
+  width: 100%;
+  resize: vertical;
+  border: 1px solid color-mix(in srgb, CanvasText 20%, transparent);
+  border-radius: 8px;
+  padding: 10px;
+  background: color-mix(in srgb, Canvas 94%, CanvasText 6%);
+  color: CanvasText;
+}
+
+.actions {
+  display: flex;
+  gap: 8px;
+}
+
+.actions button {
+  flex: 1;
+}
+
+footer {
+  margin-top: 14px;
+  font-size: 12px;
+  opacity: 0.65;
+}
