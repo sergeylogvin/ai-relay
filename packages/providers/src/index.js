@@ -1,3 +1,10 @@
+export {
+  DEFAULT_PROVIDER_CAPABILITIES,
+  PROVIDER_CAPABILITIES,
+  normalizeProviderCapabilities,
+  supportsCapability
+} from "./capabilities.js";
+
 export { ClaudeAdapter } from "./claude/adapter.js";
 export { CLAUDE_SELECTORS } from "./claude/selectors.js";
 export { claudePlugin } from "./claude/plugin.js";

@@ -1,3 +1,5 @@
+import { normalizeProviderCapabilities } from "./capabilities.js";
+
 const REQUIRED_ADAPTER_METHODS = Object.freeze([
   "matches",
   "capabilities",
@@ -33,15 +35,18 @@ export function validateProviderAdapter(adapter, expectedId = null) {
     }
   }
 
-  const capabilities = adapter.capabilities();
+  const capabilities = normalizeProviderCapabilities(
+    adapter.capabilities()
+  );
 
-  if (!capabilities || typeof capabilities !== "object") {
-    throw new TypeError(
-      `Provider adapter "${id}" must return a capabilities object.`
-    );
-  }
-
-  return adapter;
+  return Object.freeze({
+    id,
+    matches: adapter.matches.bind(adapter),
+    readConversation: adapter.readConversation.bind(adapter),
+    capabilities() {
+      return capabilities;
+    }
+  });
 }
 
 export function defineProviderPlugin({

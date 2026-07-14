@@ -56,6 +56,20 @@ export class ProviderRegistry {
     }));
   }
 
+  getCapabilities(input) {
+    return this.require(input).capabilities();
+  }
+
+  supports(input, capability) {
+    return Boolean(this.getCapabilities(input)[capability]);
+  }
+
+  providersSupporting(capability) {
+    return this.list().filter(
+      ({ capabilities }) => Boolean(capabilities[capability])
+    );
+  }
+
   find(input) {
     return this.adapters.find((adapter) => adapter.matches(input)) ?? null;
   }
