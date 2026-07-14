@@ -1,14 +1,17 @@
 async function loadRuntime() {
-  const [providersModule, coreModule, exportModule] = await Promise.all([
-    import(chrome.runtime.getURL("providers/registry.js")),
-    import(chrome.runtime.getURL("core/context-engine.js")),
-    import(chrome.runtime.getURL("export/exporter.js"))
-  ]);
+  const [providersModule, coreModule, exportModule, metadataModule] =
+    await Promise.all([
+      import(chrome.runtime.getURL("providers/registry.js")),
+      import(chrome.runtime.getURL("core/context-engine.js")),
+      import(chrome.runtime.getURL("export/exporter.js")),
+      import(chrome.runtime.getURL("capture-metadata.js"))
+    ]);
 
   return {
     ProviderRegistry: providersModule.ProviderRegistry,
     ContextEngine: coreModule.ContextEngine,
-    ExportEngine: exportModule.ExportEngine
+    ExportEngine: exportModule.ExportEngine,
+    collectCaptureMetadata: metadataModule.collectCaptureMetadata
   };
 }
 
@@ -28,8 +31,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   (async () => {
     try {
-      const { ProviderRegistry, ContextEngine, ExportEngine } =
-        await loadRuntime();
+      const {
+        ProviderRegistry,
+        ContextEngine,
+        ExportEngine,
+        collectCaptureMetadata
+      } = await loadRuntime();
 
       const registry = new ProviderRegistry();
       const conversation = registry.readConversation(
@@ -43,6 +50,23 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         );
       }
 
+      const capturedAt = new Date().toISOString();
+      const metadata = collectCaptureMetadata({
+        conversation,
+        root: document,
+        url: window.location.href,
+        capturedAt
+      });
+
+      const enrichedConversation = {
+        ...conversation,
+        providerVersion: metadata.providerVersion,
+        conversationId: metadata.conversationId,
+        capturedAt,
+        model: metadata.model,
+        metadata
+      };
+
       const contextEngine = new ContextEngine({
         recentMessageLimit: 12
       });
@@ -51,14 +75,14 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         projectId: createProjectId(conversation),
         provider: conversation.provider,
         messages: conversation.messages,
-        capturedAt: new Date().toISOString()
+        capturedAt
       });
 
       const handoff = contextEngine.createHandoff(snapshot);
 
       const exportEngine = new ExportEngine();
       const exported = await exportEngine.create({
-        conversation,
+        conversation: enrichedConversation,
         handoff,
         createdAt: snapshot.capturedAt
       });
@@ -72,6 +96,9 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           url: conversation.url,
           capturedAt: exported.createdAt,
           messageCount: conversation.messages.length,
+          model: metadata.model,
+          conversationId: metadata.conversationId,
+          metadata,
           snapshot,
           handoff,
           files: exported.files,
