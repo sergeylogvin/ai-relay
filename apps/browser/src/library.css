@@ -492,3 +492,58 @@ textarea {
   cursor: not-allowed;
   opacity: 0.5;
 }
+
+
+.import-export {
+  border-top: 1px solid rgba(127, 127, 127, 0.25);
+  display: grid;
+  gap: 12px;
+  padding: 16px;
+}
+
+.import-export h2 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.import-export__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.import-export__actions button {
+  cursor: pointer;
+  font: inherit;
+}
+
+.import-export__dropzone {
+  border: 1px dashed currentColor;
+  border-radius: 10px;
+  opacity: 0.75;
+  padding: 20px;
+  text-align: center;
+}
+
+.import-export__dropzone.is-drag-over {
+  background: rgba(127, 127, 127, 0.14);
+  opacity: 1;
+  outline: 2px solid currentColor;
+  outline-offset: 2px;
+}
+
+.import-export progress {
+  width: 100%;
+}
+
+.import-export__status {
+  margin: 0;
+}
+
+.import-export__status[data-status="error"] {
+  color: #b42318;
+}
+
+.import-export__status[data-status="success"] {
+  color: #067647;
+}
