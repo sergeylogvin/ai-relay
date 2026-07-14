@@ -1,6 +1,5 @@
-import { ClaudeAdapter } from "./claude/adapter.js";
-import { ChatGPTAdapter } from "./chatgpt/adapter.js";
-import { GeminiAdapter } from "./gemini/adapter.js";
+import { DEFAULT_PROVIDER_PLUGINS } from "./default-plugins.js";
+import { validateProviderAdapter } from "./plugin.js";
 
 export class ProviderNotFoundError extends Error {
   constructor(input) {
@@ -10,19 +9,50 @@ export class ProviderNotFoundError extends Error {
   }
 }
 
+export class DuplicateProviderError extends Error {
+  constructor(id) {
+    super(`Provider plugin already registered: ${id}`);
+    this.name = "DuplicateProviderError";
+    this.providerId = id;
+  }
+}
+
 export class ProviderRegistry {
-  constructor(adapters = [
-    new ClaudeAdapter(),
-    new ChatGPTAdapter(),
-    new GeminiAdapter()
-  ]) {
-    this.adapters = Object.freeze([...adapters]);
+  constructor(plugins = DEFAULT_PROVIDER_PLUGINS) {
+    this.plugins = [];
+    this.adapters = [];
+
+    for (const plugin of plugins) {
+      this.register(plugin);
+    }
+  }
+
+  register(plugin) {
+    if (!plugin || typeof plugin.createAdapter !== "function") {
+      throw new TypeError("Provider plugin must implement createAdapter().");
+    }
+
+    if (this.plugins.some((item) => item.id === plugin.id)) {
+      throw new DuplicateProviderError(plugin.id);
+    }
+
+    const adapter = validateProviderAdapter(
+      plugin.createAdapter(),
+      plugin.id
+    );
+
+    this.plugins.push(plugin);
+    this.adapters.push(adapter);
+
+    return this;
   }
 
   list() {
-    return this.adapters.map((adapter) => ({
-      id: adapter.id,
-      capabilities: adapter.capabilities()
+    return this.plugins.map((plugin, index) => ({
+      id: plugin.id,
+      displayName: plugin.displayName,
+      hosts: [...plugin.hosts],
+      capabilities: this.adapters[index].capabilities()
     }));
   }
 
