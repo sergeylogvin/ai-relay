@@ -28,3 +28,19 @@ Early development.
 ## License
 
 Apache License 2.0
+
+## Library
+
+The browser extension includes a local-first conversation Library with:
+
+- collections, tags, and pinned items;
+- duplicate detection and cleanup planning;
+- smart search and advanced filters;
+- bulk operations;
+- snapshot import and export;
+- settings, analytics, and saved views;
+- keyboard shortcuts and a command palette;
+- accessibility and UX support.
+
+See `docs/library-v1-release-notes.md` and
+`docs/library-release-checklist.md` for the v1 scope and validation steps.
