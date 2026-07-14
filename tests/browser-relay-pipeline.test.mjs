@@ -54,6 +54,7 @@ test("manifest exposes shared runtime modules only on supported hosts", async ()
     "providers/*/*.js",
     "core/*.js",
     "export/*.js",
+    "capture-metadata.js",
     "library/*.js"
   ]);
 
@@ -88,6 +89,7 @@ test("browser build contains the complete relay runtime", async () => {
     await stat(resolve(output, "export/exporter.js"));
     await stat(resolve(output, "export/markdown.js"));
     await stat(resolve(output, "export/checksum.js"));
+    await stat(resolve(output, "capture-metadata.js"));
   } finally {
     await rm(temporaryRoot, {
       recursive: true,
