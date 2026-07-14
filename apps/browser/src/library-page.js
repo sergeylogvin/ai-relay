@@ -10,6 +10,7 @@ import {
 } from "./core/continuation.js";
 import {
   filterLibraryRecords,
+  listLibraryCollections,
   listLibraryTags,
   sortLibraryRecords,
   updateRecordOrganization
@@ -27,6 +28,11 @@ tagFilter.id = "tagFilter";
 tagFilter.setAttribute("aria-label", "Tag");
 tagFilter.append(new Option("All tags", ""));
 
+const collectionFilter = document.createElement("select");
+collectionFilter.id = "collectionFilter";
+collectionFilter.setAttribute("aria-label", "Collection");
+collectionFilter.append(new Option("All collections", ""));
+
 const pinnedOnlyLabel = document.createElement("label");
 pinnedOnlyLabel.className = "checkbox-filter";
 const pinnedOnlyFilter = document.createElement("input");
@@ -38,6 +44,7 @@ pinnedOnlyLabel.append(
 );
 
 providerFilter.insertAdjacentElement("afterend", pinnedOnlyLabel);
+providerFilter.insertAdjacentElement("afterend", collectionFilter);
 providerFilter.insertAdjacentElement("afterend", tagFilter);
 
 const organizationPanel = document.createElement("section");
@@ -51,6 +58,16 @@ organizationPanel.innerHTML = `
       type="text"
       placeholder="project, research, personal"
     />
+  </label>
+  <label>
+    Collection
+    <input
+      id="recordCollectionInput"
+      type="text"
+      placeholder="Work, Research, Personal"
+      list="collectionSuggestions"
+    />
+    <datalist id="collectionSuggestions"></datalist>
   </label>
   <label class="checkbox-filter">
     <input id="recordPinnedInput" type="checkbox" />
@@ -70,6 +87,12 @@ detailActions.insertAdjacentElement("beforebegin", organizationPanel);
 const recordTagsInput = organizationPanel.querySelector("#recordTagsInput");
 const recordPinnedInput = organizationPanel.querySelector(
   "#recordPinnedInput"
+);
+const recordCollectionInput = organizationPanel.querySelector(
+  "#recordCollectionInput"
+);
+const collectionSuggestions = organizationPanel.querySelector(
+  "#collectionSuggestions"
 );
 const saveOrganizationButton = organizationPanel.querySelector(
   "#saveOrganizationButton"
@@ -183,6 +206,26 @@ async function openContinuationProvider(provider) {
   chrome.tabs.create({ url });
 }
 
+function updateCollectionOptions(records) {
+  const current = collectionFilter.value;
+  const collections = listLibraryCollections(records);
+
+  collectionFilter.replaceChildren(
+    new Option("All collections", ""),
+    ...collections.map((collection) => new Option(collection, collection))
+  );
+
+  collectionSuggestions.replaceChildren(
+    ...collections.map((collection) => {
+      const option = document.createElement("option");
+      option.value = collection;
+      return option;
+    })
+  );
+
+  collectionFilter.value = collections.includes(current) ? current : "";
+}
+
 function updateTagOptions(records) {
   const current = tagFilter.value;
   const tags = listLibraryTags(records);
@@ -219,6 +262,7 @@ function renderDetails(record) {
   detailChecksum.textContent = record.checksum ?? "—";
   handoffPreview.value = record.handoffMarkdown;
   recordTagsInput.value = (record.tags ?? []).join(", ");
+  recordCollectionInput.value = record.collection ?? "";
   recordPinnedInput.checked = Boolean(record.pinned);
   saveOrganizationButton.disabled = false;
 
@@ -238,6 +282,7 @@ function renderDetails(record) {
 function closeDetails() {
   selectedRecord = null;
   recordTagsInput.value = "";
+  recordCollectionInput.value = "";
   recordPinnedInput.checked = false;
   saveOrganizationButton.disabled = true;
   detailPanel.hidden = true;
@@ -276,6 +321,7 @@ async function applyFilters() {
       query: searchInput.value,
       provider: providerFilter.value,
       tag: tagFilter.value,
+      collection: collectionFilter.value,
       pinnedOnly: pinnedOnlyFilter.checked
     })
   );
@@ -298,6 +344,7 @@ async function loadLibrary() {
     allRecords = await library.list();
     updateProviderOptions(allRecords);
     updateTagOptions(allRecords);
+    updateCollectionOptions(allRecords);
     await applyFilters();
   } catch (error) {
     recordList.replaceChildren();
@@ -320,6 +367,12 @@ searchInput.addEventListener("input", () => {
 });
 
 providerFilter.addEventListener("change", () => {
+  applyFilters().catch((error) => {
+    setStatus(error instanceof Error ? error.message : "Filter failed.");
+  });
+});
+
+collectionFilter.addEventListener("change", () => {
   applyFilters().catch((error) => {
     setStatus(error instanceof Error ? error.message : "Filter failed.");
   });
@@ -348,7 +401,8 @@ saveOrganizationButton.addEventListener("click", async () => {
         .split(",")
         .map((tag) => tag.trim())
         .filter(Boolean),
-      pinned: recordPinnedInput.checked
+      pinned: recordPinnedInput.checked,
+      collection: recordCollectionInput.value
     });
 
     await library.save(updated);

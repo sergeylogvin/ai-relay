@@ -348,3 +348,7 @@ textarea {
 .organization-panel .checkbox-filter {
   display: flex;
 }
+
+.organization-panel input[list] {
+  width: 100%;
+}

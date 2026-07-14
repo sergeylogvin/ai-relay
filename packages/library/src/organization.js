@@ -21,7 +21,8 @@ export function updateRecordOrganization(
   record,
   {
     tags = record?.tags ?? [],
-    pinned = record?.pinned ?? false
+    pinned = record?.pinned ?? false,
+    collection = record?.collection ?? ""
   } = {}
 ) {
   if (!record || typeof record !== "object") {
@@ -32,8 +33,21 @@ export function updateRecordOrganization(
     ...record,
     tags: normalizeTags(tags),
     pinned: Boolean(pinned),
+    collection: String(collection ?? "").trim(),
     updatedAt: new Date().toISOString()
   };
+}
+
+export function listLibraryCollections(records) {
+  if (!Array.isArray(records)) {
+    throw new LibraryValidationError("records must be an array.");
+  }
+
+  return [...new Set(
+    records
+      .map((record) => String(record.collection ?? "").trim())
+      .filter(Boolean)
+  )].sort((left, right) => left.localeCompare(right));
 }
 
 export function listLibraryTags(records) {
@@ -50,6 +64,7 @@ export function filterLibraryRecords(
     query = "",
     provider = "",
     tag = "",
+    collection = "",
     pinnedOnly = false
   } = {}
 ) {
@@ -60,6 +75,7 @@ export function filterLibraryRecords(
   const normalizedQuery = String(query).trim().toLowerCase();
   const normalizedProvider = String(provider).trim().toLowerCase();
   const normalizedTag = normalizeTag(tag);
+  const normalizedCollection = String(collection).trim().toLowerCase();
 
   return records.filter((record) => {
     const searchable = [
@@ -67,7 +83,8 @@ export function filterLibraryRecords(
       record.sourceUrl,
       record.provider,
       record.handoffMarkdown,
-      ...(record.tags ?? [])
+      ...(record.tags ?? []),
+      record.collection
     ]
       .map((value) => String(value ?? "").toLowerCase())
       .join("\n");
@@ -86,6 +103,14 @@ export function filterLibraryRecords(
     if (
       normalizedTag &&
       !(record.tags ?? []).map(normalizeTag).includes(normalizedTag)
+    ) {
+      return false;
+    }
+
+    if (
+      normalizedCollection &&
+      String(record.collection ?? "").trim().toLowerCase() !==
+        normalizedCollection
     ) {
       return false;
     }
