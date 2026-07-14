@@ -281,6 +281,62 @@ test("GeminiAdapter removes speaker labels from captured turn content", () => {
   );
 });
 
+test("GeminiAdapter ignores generic page headings and uses the document title", () => {
+  const genericHeading = new FakeElement({
+    text: "Conversation with Gemini"
+  });
+  const root = {
+    title: "Electronic signature benefits - Gemini",
+    querySelector(selector) {
+      if (selector === "h1") return genericHeading;
+      return null;
+    }
+  };
+
+  assert.equal(
+    new GeminiAdapter().readTitle(root),
+    "Electronic signature benefits"
+  );
+});
+
+test("GeminiAdapter prefers a real conversation heading", () => {
+  const conversationHeading = new FakeElement({
+    text: "Electronic signature benefits"
+  });
+  const root = {
+    title: "Different browser title - Gemini",
+    querySelector(selector) {
+      if (selector === '[data-test-id*="conversation-title"]') {
+        return conversationHeading;
+      }
+      return null;
+    }
+  };
+
+  assert.equal(
+    new GeminiAdapter().readTitle(root),
+    "Electronic signature benefits"
+  );
+});
+
+test("GeminiAdapter falls back when only generic titles exist", () => {
+  const genericHeading = new FakeElement({
+    text: "Conversation with Gemini"
+  });
+  const root = {
+    title: "Gemini",
+    querySelector(selector) {
+      if (selector === "h1") return genericHeading;
+      return null;
+    }
+  };
+
+  assert.equal(
+    new GeminiAdapter().readTitle(root),
+    "Untitled Gemini conversation"
+  );
+});
+
 test("Gemini fixture documents expected selector roles", async () => {
   const fixture = await readFile(
     new URL("./fixtures/gemini/basic.html", import.meta.url),
