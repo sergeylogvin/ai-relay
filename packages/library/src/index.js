@@ -47,3 +47,9 @@ export {
   smartSearchLibrary,
   highlightSearchTerms
 } from "./smart-search.js";
+export {
+  normalizeLibraryFilters as normalizeAdvancedLibraryFilters,
+  recordMatchesLibraryFilters as recordMatchesAdvancedLibraryFilters,
+  filterLibraryRecords as applyLibraryFilters,
+  summarizeLibraryFilters as summarizeAdvancedLibraryFilters
+} from "./filters.js";
