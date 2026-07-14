@@ -68,6 +68,16 @@ function findAssistantContentFromActionBar(actionBar, conversationRoot) {
   return null;
 }
 
+function removeNestedElements(elements) {
+  return elements.filter(
+    (element) =>
+      !elements.some(
+        (candidate) =>
+          candidate !== element && candidate.contains?.(element)
+      )
+  );
+}
+
 function deduplicateMessages(messages) {
   const seen = new Set();
   const result = [];
@@ -117,16 +127,20 @@ export class ClaudeAdapter {
       )
       .filter(Boolean);
 
-    const candidates = [
-      ...allMatchingElements(
-        conversationRoot,
-        CLAUDE_SELECTORS.userMessage
-      ).map((element) => ({ role: "user", element })),
+    const userElements = removeNestedElements(
+      allMatchingElements(conversationRoot, CLAUDE_SELECTORS.userMessage)
+    );
+    const assistantElements = removeNestedElements([
       ...allMatchingElements(
         conversationRoot,
         CLAUDE_SELECTORS.assistantMessage
-      ).map((element) => ({ role: "assistant", element })),
-      ...assistantFallbacks.map((element) => ({
+      ),
+      ...assistantFallbacks
+    ]);
+
+    const candidates = [
+      ...userElements.map((element) => ({ role: "user", element })),
+      ...assistantElements.map((element) => ({
         role: "assistant",
         element
       }))
