@@ -547,3 +547,53 @@ textarea {
 .import-export__status[data-status="success"] {
   color: #067647;
 }
+
+
+.library-settings {
+  border-top: 1px solid rgba(127, 127, 127, 0.25);
+  display: grid;
+  gap: 14px;
+  padding: 16px;
+}
+
+.library-settings h2 {
+  font-size: 16px;
+  margin: 0;
+}
+
+.library-settings__form {
+  display: grid;
+  gap: 12px;
+}
+
+.library-settings__field {
+  display: grid;
+  gap: 6px;
+}
+
+.library-settings__field--checkbox {
+  align-items: center;
+  display: flex;
+  gap: 8px;
+}
+
+.library-settings__field input,
+.library-settings__field select,
+.library-settings__actions button {
+  font: inherit;
+}
+
+.library-settings__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.library-settings__actions button {
+  cursor: pointer;
+}
+
+.library-settings__status {
+  margin: 0;
+  min-height: 1.25em;
+}
