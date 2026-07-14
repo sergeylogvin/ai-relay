@@ -39,3 +39,7 @@ export {
   serializeLibrarySnapshot,
   getLibrarySnapshotFilename
 } from "./snapshot.js";
+export {
+  parseLibrarySnapshot,
+  planLibrarySnapshotImport
+} from "./snapshot-import.js";
