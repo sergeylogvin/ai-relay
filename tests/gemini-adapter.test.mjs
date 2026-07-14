@@ -234,6 +234,53 @@ test("GeminiAdapter keeps complete turns instead of nested UI fragments", () => 
   );
 });
 
+test("GeminiAdapter removes speaker labels from captured turn content", () => {
+  const userContent = new FakeElement({
+    text: "You said\n\nName three benefits of electronic signatures.",
+    order: 1
+  });
+  const userTurn = new FakeElement({
+    selectors: { ".query-text": userContent },
+    order: 1
+  });
+
+  const assistantContent = new FakeElement({
+    text:
+      "Gemini said\n\nThey save time, reduce costs, and improve traceability.",
+    order: 2
+  });
+  const assistantTurn = new FakeElement({
+    selectors: { ".response-content": assistantContent },
+    order: 2
+  });
+
+  const main = new FakeElement({
+    selectors: {
+      "user-query": [userTurn],
+      "model-response": [assistantTurn]
+    }
+  });
+  const root = {
+    title: "Benefits - Gemini",
+    location: { href: "https://gemini.google.com/app/example" },
+    querySelector: (selector) => (selector === "main" ? main : null),
+    querySelectorAll: () => []
+  };
+
+  const result = new GeminiAdapter().readConversation(root);
+
+  assert.deepEqual(
+    result.messages.map(({ role, content }) => [role, content]),
+    [
+      ["user", "Name three benefits of electronic signatures."],
+      [
+        "assistant",
+        "They save time, reduce costs, and improve traceability."
+      ]
+    ]
+  );
+});
+
 test("Gemini fixture documents expected selector roles", async () => {
   const fixture = await readFile(
     new URL("./fixtures/gemini/basic.html", import.meta.url),
