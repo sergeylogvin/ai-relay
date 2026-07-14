@@ -5,6 +5,7 @@ import {
   ProviderNotFoundError,
   ProviderRegistry
 } from "../packages/providers/src/registry.js";
+import { defineProviderPlugin } from "../packages/providers/src/plugin.js";
 
 function createAdapter(id, hostname) {
   return {
@@ -36,10 +37,19 @@ function createAdapter(id, hostname) {
   };
 }
 
+function createPlugin(id, hostname, displayName = id) {
+  return defineProviderPlugin({
+    id,
+    displayName,
+    hosts: [hostname],
+    createAdapter: () => createAdapter(id, hostname)
+  });
+}
+
 test("ProviderRegistry lists registered adapters", () => {
   const registry = new ProviderRegistry([
-    createAdapter("claude", "claude.ai"),
-    createAdapter("chatgpt", "chatgpt.com")
+    createPlugin("claude", "claude.ai", "Claude"),
+    createPlugin("chatgpt", "chatgpt.com", "ChatGPT")
   ]);
 
   assert.deepEqual(
@@ -50,9 +60,9 @@ test("ProviderRegistry lists registered adapters", () => {
 
 test("ProviderRegistry finds an adapter by URL", () => {
   const registry = new ProviderRegistry([
-    createAdapter("claude", "claude.ai"),
-    createAdapter("chatgpt", "chatgpt.com"),
-    createAdapter("gemini", "gemini.google.com")
+    createPlugin("claude", "claude.ai", "Claude"),
+    createPlugin("chatgpt", "chatgpt.com", "ChatGPT"),
+    createPlugin("gemini", "gemini.google.com", "Gemini")
   ]);
 
   assert.equal(
@@ -71,7 +81,7 @@ test("ProviderRegistry finds an adapter by URL", () => {
 
 test("ProviderRegistry returns null for unsupported hosts", () => {
   const registry = new ProviderRegistry([
-    createAdapter("claude", "claude.ai")
+    createPlugin("claude", "claude.ai", "Claude")
   ]);
 
   assert.equal(registry.find("https://example.com"), null);
@@ -79,7 +89,7 @@ test("ProviderRegistry returns null for unsupported hosts", () => {
 
 test("ProviderRegistry require throws for unsupported hosts", () => {
   const registry = new ProviderRegistry([
-    createAdapter("claude", "claude.ai")
+    createPlugin("claude", "claude.ai", "Claude")
   ]);
 
   assert.throws(
@@ -90,7 +100,7 @@ test("ProviderRegistry require throws for unsupported hosts", () => {
 
 test("ProviderRegistry delegates conversation reading", () => {
   const registry = new ProviderRegistry([
-    createAdapter("chatgpt", "chatgpt.com")
+    createPlugin("chatgpt", "chatgpt.com", "ChatGPT")
   ]);
 
   const result = registry.readConversation(
