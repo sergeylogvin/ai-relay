@@ -1,0 +1,44 @@
+name: Browser Release
+
+on:
+  workflow_dispatch:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+      - run: npm run check
+      - run: npm test
+      - run: npm run package:browser
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ai-relay-browser-release
+          path: |
+            release/*.zip
+            release/*.sha256
+            release/browser-release.json
+
+      - if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v2
+        with:
+          files: |
+            release/*.zip
+            release/*.sha256
+            release/browser-release.json
+          body_path: docs/library-v1-release-notes.md

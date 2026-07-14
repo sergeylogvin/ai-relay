@@ -44,3 +44,14 @@ The browser extension includes a local-first conversation Library with:
 
 See `docs/library-v1-release-notes.md` and
 `docs/library-release-checklist.md` for the v1 scope and validation steps.
+
+## Browser release
+
+Create a user-installable browser package:
+
+```bash
+npm run package:browser
+```
+
+Release files are written to `release/`. See
+`docs/browser-installation.md` for installation instructions.
