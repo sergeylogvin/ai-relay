@@ -74,3 +74,8 @@ export {
   resetLibraryPreferences,
   shouldConfirmLibraryAction
 } from "./preferences.js";
+export {
+  buildLibraryAnalytics,
+  formatAnalyticsBytes,
+  getLibraryHealthInsights
+} from "./analytics.js";
