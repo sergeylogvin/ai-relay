@@ -99,3 +99,10 @@ export {
   formatShortcutLabel,
   createShortcutRegistry
 } from "./keyboard-shortcuts.js";
+export {
+  normalizeAnnouncement,
+  createFocusHistory,
+  getFocusableElements,
+  trapFocus,
+  buildEmptyState
+} from "./accessibility.js";

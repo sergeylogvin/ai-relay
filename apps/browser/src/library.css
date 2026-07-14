@@ -881,3 +881,109 @@ textarea {
   padding: 3px 7px;
   text-align: center;
 }
+
+
+.sr-only {
+  height: 1px;
+  margin: -1px;
+  overflow: hidden;
+  padding: 0;
+  position: absolute;
+  width: 1px;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.skip-link {
+  background: Canvas;
+  border: 2px solid currentColor;
+  border-radius: 8px;
+  left: 12px;
+  padding: 8px 12px;
+  position: fixed;
+  top: 12px;
+  transform: translateY(-160%);
+  transition: transform 120ms ease;
+  z-index: 2000;
+}
+
+.skip-link:focus {
+  transform: translateY(0);
+}
+
+:where(
+  button,
+  a,
+  input,
+  select,
+  textarea,
+  [tabindex]
+):focus-visible {
+  outline: 3px solid Highlight;
+  outline-offset: 2px;
+}
+
+.library-empty-state {
+  align-items: start;
+  border: 1px dashed rgba(127, 127, 127, 0.45);
+  border-radius: 12px;
+  display: grid;
+  gap: 10px;
+  justify-items: start;
+  padding: 24px;
+}
+
+.library-empty-state h2,
+.library-empty-state p {
+  margin: 0;
+}
+
+.library-loading {
+  display: grid;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.library-loading__row {
+  animation: library-loading-pulse 1.2s ease-in-out infinite;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(127, 127, 127, 0.12),
+      rgba(127, 127, 127, 0.28),
+      rgba(127, 127, 127, 0.12)
+    );
+  background-size: 200% 100%;
+  border-radius: 10px;
+  height: 56px;
+}
+
+@keyframes library-loading-pulse {
+  from {
+    background-position: 200% 0;
+  }
+
+  to {
+    background-position: -200% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+  }
+}
+
+@media (forced-colors: active) {
+  .library-empty-state,
+  .library-saved-views__item,
+  .library-analytics__metric,
+  .command-palette__panel {
+    border: 1px solid CanvasText;
+  }
+}
