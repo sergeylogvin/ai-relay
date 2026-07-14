@@ -129,12 +129,12 @@ test("ChatGPTAdapter matches only chatgpt.com", () => {
   );
 });
 
-test("ChatGPTAdapter reports conservative capabilities", () => {
+test("ChatGPTAdapter reports safe context insertion support", () => {
   const adapter = new ChatGPTAdapter();
 
   assert.deepEqual(adapter.capabilities(), {
     readConversation: true,
-    insertContext: false,
+    insertContext: true,
     uploadFiles: false,
     readLimits: false
   });

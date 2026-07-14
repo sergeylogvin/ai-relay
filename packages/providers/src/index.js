@@ -25,6 +25,13 @@ export {
 
 export {
   DuplicateProviderError,
+  ProviderCapabilityError,
   ProviderNotFoundError,
   ProviderRegistry
 } from "./registry.js";
+
+export {
+  ContextComposerNotEmptyError,
+  ContextComposerNotFoundError,
+  insertContextIntoComposer
+} from "./context-insertion.js";

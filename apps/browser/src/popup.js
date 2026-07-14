@@ -5,6 +5,7 @@ import { BrowserStorageLibraryAdapter } from "./library/browser-storage-adapter.
 
 const captureButton = document.querySelector("#captureButton");
 const copyMarkdownButton = document.querySelector("#copyMarkdownButton");
+const insertContextButton = document.querySelector("#insertContextButton");
 const copyJsonButton = document.querySelector("#copyJsonButton");
 const downloadMarkdownButton = document.querySelector(
   "#downloadMarkdownButton"
@@ -38,6 +39,7 @@ function setStatus(message) {
 }
 
 function setButtonsEnabled(enabled) {
+  insertContextButton.disabled = !enabled;
   copyMarkdownButton.disabled = !enabled;
   copyJsonButton.disabled = !enabled;
   downloadMarkdownButton.disabled = !enabled;
@@ -148,6 +150,43 @@ captureButton.addEventListener("click", async () => {
     );
   } finally {
     captureButton.disabled = false;
+  }
+});
+
+insertContextButton.addEventListener("click", async () => {
+  const context = lastCapture?.files?.["handoff.md"] ?? lastCapture?.markdown;
+  if (!context) return;
+
+  insertContextButton.disabled = true;
+  setStatus("Inserting handoff into the current chat…");
+
+  try {
+    const tab = await getActiveTab();
+
+    if (!tab?.id) {
+      throw new Error("No active tab was found.");
+    }
+
+    const response = await chrome.tabs.sendMessage(tab.id, {
+      type: "AI_RELAY_INSERT_CONTEXT",
+      context
+    });
+
+    if (!response?.ok) {
+      throw new Error(response?.error ?? "Context insertion failed.");
+    }
+
+    setStatus(
+      `Inserted ${response.insertion?.insertedCharacters ?? context.length} character(s). Review before sending.`
+    );
+  } catch (error) {
+    setStatus(
+      error instanceof Error
+        ? error.message
+        : "Unable to insert this handoff."
+    );
+  } finally {
+    insertContextButton.disabled = false;
   }
 });
 

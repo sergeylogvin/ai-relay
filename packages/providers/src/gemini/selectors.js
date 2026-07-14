@@ -26,5 +26,12 @@ export const GEMINI_SELECTORS = Object.freeze({
     '[data-test-id*="conversation-title"]',
     '[data-testid*="conversation-title"]',
     "h1"
+  ]),
+  composer: Object.freeze([
+    'rich-textarea .ql-editor[contenteditable="true"]',
+    '.ql-editor[contenteditable="true"]',
+    '[data-test-id*="input"] [contenteditable="true"]',
+    'div[contenteditable="true"][aria-label*="prompt" i]',
+    "main textarea"
   ])
 });

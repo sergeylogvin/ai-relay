@@ -27,7 +27,12 @@ function createProjectId(conversation) {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
-  if (message?.type !== "AI_RELAY_CAPTURE") return false;
+  const supportedMessages = new Set([
+    "AI_RELAY_CAPTURE",
+    "AI_RELAY_INSERT_CONTEXT"
+  ]);
+
+  if (!supportedMessages.has(message?.type)) return false;
 
   (async () => {
     try {
@@ -39,6 +44,18 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       } = await loadRuntime();
 
       const registry = new ProviderRegistry();
+
+      if (message.type === "AI_RELAY_INSERT_CONTEXT") {
+        const result = registry.insertContext(
+          window.location.href,
+          message.context,
+          document
+        );
+
+        sendResponse({ ok: true, insertion: result });
+        return;
+      }
+
       const conversation = registry.readConversation(
         window.location.href,
         document

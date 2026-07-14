@@ -23,5 +23,12 @@ export const CHATGPT_SELECTORS = Object.freeze({
     'button[data-testid*="conversation-title"]',
     '[data-testid*="conversation-title"]',
     "h1"
+  ]),
+  composer: Object.freeze([
+    '#prompt-textarea[contenteditable="true"]',
+    'textarea#prompt-textarea',
+    'textarea[data-testid="prompt-textarea"]',
+    '[data-testid="composer"] [contenteditable="true"]',
+    'main form textarea'
   ])
 });

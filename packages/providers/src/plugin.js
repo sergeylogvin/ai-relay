@@ -39,14 +39,29 @@ export function validateProviderAdapter(adapter, expectedId = null) {
     adapter.capabilities()
   );
 
-  return Object.freeze({
+  if (
+    capabilities.insertContext &&
+    typeof adapter.insertContext !== "function"
+  ) {
+    throw new TypeError(
+      `Provider adapter "${id}" declares insertContext but does not implement insertContext().`
+    );
+  }
+
+  const validatedAdapter = {
     id,
     matches: adapter.matches.bind(adapter),
     readConversation: adapter.readConversation.bind(adapter),
     capabilities() {
       return capabilities;
     }
-  });
+  };
+
+  if (capabilities.insertContext) {
+    validatedAdapter.insertContext = adapter.insertContext.bind(adapter);
+  }
+
+  return Object.freeze(validatedAdapter);
 }
 
 export function defineProviderPlugin({

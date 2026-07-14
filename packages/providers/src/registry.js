@@ -17,6 +17,15 @@ export class DuplicateProviderError extends Error {
   }
 }
 
+export class ProviderCapabilityError extends Error {
+  constructor(providerId, capability) {
+    super(`Provider "${providerId}" does not support ${capability}.`);
+    this.name = "ProviderCapabilityError";
+    this.providerId = providerId;
+    this.capability = capability;
+  }
+}
+
 export class ProviderRegistry {
   constructor(plugins = DEFAULT_PROVIDER_PLUGINS) {
     this.plugins = [];
@@ -86,5 +95,15 @@ export class ProviderRegistry {
 
   readConversation(input, root = document) {
     return this.require(input).readConversation(root);
+  }
+
+  insertContext(input, context, root = document) {
+    const adapter = this.require(input);
+
+    if (!adapter.capabilities().insertContext) {
+      throw new ProviderCapabilityError(adapter.id, "insertContext");
+    }
+
+    return adapter.insertContext(context, root);
   }
 }

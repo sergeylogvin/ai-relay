@@ -129,12 +129,12 @@ test("GeminiAdapter matches only gemini.google.com", () => {
   );
 });
 
-test("GeminiAdapter reports conservative capabilities", () => {
+test("GeminiAdapter reports safe context insertion support", () => {
   const adapter = new GeminiAdapter();
 
   assert.deepEqual(adapter.capabilities(), {
     readConversation: true,
-    insertContext: false,
+    insertContext: true,
     uploadFiles: false,
     readLimits: false
   });
