@@ -30,3 +30,6 @@ export {
 export {
   mergeDuplicateGroup
 } from "./merge-duplicates.js";
+export {
+  planLibraryCleanup
+} from "./cleanup.js";
