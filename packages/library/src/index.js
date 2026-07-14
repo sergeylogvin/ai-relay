@@ -53,3 +53,16 @@ export {
   filterLibraryRecords as applyLibraryFilters,
   summarizeLibraryFilters as summarizeAdvancedLibraryFilters
 } from "./filters.js";
+export {
+  createSelectionState,
+  toggleRecordSelection,
+  selectRecordRange,
+  selectAllRecords,
+  clearRecordSelection,
+  planBulkDelete,
+  planBulkCollectionAssignment,
+  planBulkTagUpdate,
+  planBulkPinUpdate,
+  planBulkExport,
+  summarizeBulkSelection
+} from "./bulk-operations.js";
