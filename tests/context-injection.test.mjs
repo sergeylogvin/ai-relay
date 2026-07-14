@@ -108,6 +108,41 @@ test("inserts context into a contenteditable composer", () => {
   assert.equal(result.composerType, "contenteditable");
 });
 
+test("preserves Markdown line breaks in a contenteditable composer", () => {
+  const inserted = [];
+  const composer = createComposer({
+    tagName: "DIV",
+    contentEditable: true
+  });
+  composer.replaceChildren = (fragment) => {
+    inserted.push(...fragment.children);
+  };
+
+  const root = {
+    querySelector: () => composer,
+    createDocumentFragment: () => ({
+      children: [],
+      append(node) {
+        this.children.push(node);
+      }
+    }),
+    createElement: (tagName) => ({ tagName: tagName.toUpperCase() }),
+    createTextNode: (textContent) => ({ textContent })
+  };
+
+  insertContextIntoComposer({
+    providerId: "example",
+    root,
+    selectors: ['[contenteditable="true"]'],
+    context: "# Handoff\n\nContinue here."
+  });
+
+  assert.deepEqual(
+    inserted.map((node) => node.tagName ?? node.textContent),
+    ["# Handoff", "BR", "BR", "Continue here."]
+  );
+});
+
 test("rejects missing composers and empty context", () => {
   assert.throws(
     () =>
