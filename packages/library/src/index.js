@@ -22,3 +22,8 @@ export {
   sortLibraryRecords,
   updateRecordOrganization
 } from "./organization.js";
+export {
+  findDuplicateGroups,
+  getDuplicateKey,
+  getDuplicateRecordIds
+} from "./duplicates.js";
