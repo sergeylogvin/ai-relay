@@ -43,3 +43,7 @@ export {
   parseLibrarySnapshot,
   planLibrarySnapshotImport
 } from "./snapshot-import.js";
+export {
+  smartSearchLibrary,
+  highlightSearchTerms
+} from "./smart-search.js";
