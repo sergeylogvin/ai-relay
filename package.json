@@ -10,6 +10,8 @@
   "scripts": {
     "check": "node scripts/check-repository.mjs",
     "test": "node --test",
-    "build:browser": "node scripts/build-browser.mjs"
+    "build:browser": "node scripts/build-browser.mjs",
+    "validate:browser-release": "node scripts/validate-browser-release.mjs",
+    "package:browser": "npm run build:browser && npm run validate:browser-release && node scripts/package-browser-release.mjs"
   }
 }
