@@ -10,6 +10,27 @@ function normalizeText(value) {
     .trim();
 }
 
+const GEMINI_SPEAKER_LABELS = Object.freeze({
+  user: Object.freeze(["You said"]),
+  assistant: Object.freeze(["Gemini said"])
+});
+
+function stripLeadingSpeakerLabel(value, role) {
+  const text = normalizeText(value);
+  const labels = GEMINI_SPEAKER_LABELS[role] ?? [];
+
+  for (const label of labels) {
+    if (text === label) return "";
+
+    const prefix = `${label}\n`;
+    if (text.startsWith(prefix)) {
+      return normalizeText(text.slice(prefix.length));
+    }
+  }
+
+  return text;
+}
+
 function firstMatchingElement(root, selectors) {
   for (const selector of selectors) {
     const element = root.querySelector(selector);
@@ -43,12 +64,13 @@ function allMatchingElements(root, selectors) {
   return result;
 }
 
-function extractContent(element) {
+function extractContent(element, role) {
   const contentElement =
     firstMatchingElement(element, GEMINI_SELECTORS.messageContent) ?? element;
 
-  return normalizeText(
-    contentElement.innerText ?? contentElement.textContent
+  return stripLeadingSpeakerLabel(
+    contentElement.innerText ?? contentElement.textContent,
+    role
   );
 }
 
@@ -137,7 +159,7 @@ export class GeminiAdapter {
         .map(({ role, element }, index) => ({
           id: `gemini-message-${index + 1}`,
           role,
-          content: extractContent(element)
+          content: extractContent(element, role)
         }))
         .filter(({ content }) => content !== "")
     );
