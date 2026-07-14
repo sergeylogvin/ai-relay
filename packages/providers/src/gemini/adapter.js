@@ -15,6 +15,20 @@ const GEMINI_SPEAKER_LABELS = Object.freeze({
   assistant: Object.freeze(["Gemini said"])
 });
 
+const GENERIC_GEMINI_TITLES = new Set([
+  "Gemini",
+  "Google Gemini",
+  "Conversation with Gemini",
+  "New chat",
+  "New chat - Gemini"
+]);
+
+function normalizeDocumentTitle(value) {
+  return normalizeText(value)
+    .replace(/\s*[-–—]\s*(?:Google\s+)?Gemini\s*$/i, "")
+    .trim();
+}
+
 function stripLeadingSpeakerLabel(value, role) {
   const text = normalizeText(value);
   const labels = GEMINI_SPEAKER_LABELS[role] ?? [];
@@ -191,8 +205,16 @@ export class GeminiAdapter {
       titleElement?.innerText ?? titleElement?.textContent
     );
 
-    if (title) return title;
+    if (title && !GENERIC_GEMINI_TITLES.has(title)) return title;
 
-    return normalizeText(root.title) || "Untitled Gemini conversation";
+    const documentTitle = normalizeDocumentTitle(root.title);
+    if (
+      documentTitle &&
+      !GENERIC_GEMINI_TITLES.has(documentTitle)
+    ) {
+      return documentTitle;
+    }
+
+    return "Untitled Gemini conversation";
   }
 }
