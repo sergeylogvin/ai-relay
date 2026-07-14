@@ -79,3 +79,14 @@ export {
   formatAnalyticsBytes,
   getLibraryHealthInsights
 } from "./analytics.js";
+export {
+  normalizeSavedView,
+  normalizeSavedViews,
+  createSavedView,
+  updateSavedView,
+  setDefaultSavedView,
+  duplicateSavedView,
+  deleteSavedView,
+  exportSavedViews,
+  importSavedViews
+} from "./saved-views.js";
