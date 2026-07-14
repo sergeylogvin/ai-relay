@@ -266,6 +266,9 @@ test("ClaudeAdapter keeps assistant content that follows a tool or artifact bloc
   });
   const completeTurn = new FakeElement({
     text: [
+      "Orchestrated artifact creation",
+      "Orchestrated artifact creation",
+      "",
       "I will create the requested file.",
       "",
       "The file is ready. Download it above."
