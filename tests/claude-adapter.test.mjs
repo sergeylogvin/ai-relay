@@ -46,6 +46,17 @@ class FakeElement {
 
     return 0;
   }
+
+  contains(other) {
+    let candidate = other;
+
+    while (candidate) {
+      if (candidate === this) return true;
+      candidate = candidate.parentElement;
+    }
+
+    return false;
+  }
 }
 
 globalThis.Node = {
@@ -194,6 +205,56 @@ test("ClaudeAdapter finds assistant responses from their action bars", () => {
     [
       ["user", "User question"],
       ["assistant", "Assistant answer discovered from the action bar."]
+    ]
+  );
+});
+
+test("ClaudeAdapter keeps one complete assistant turn instead of nested fragments", () => {
+  const completeContent = new FakeElement({
+    text: "First paragraph.\n\nSecond paragraph.",
+    order: 2
+  });
+  const completeResponse = new FakeElement({
+    selectors: { ".prose": completeContent },
+    order: 2
+  });
+  const firstParagraph = new FakeElement({
+    text: "First paragraph.",
+    order: 2,
+    parentElement: completeResponse
+  });
+  const secondParagraph = new FakeElement({
+    text: "Second paragraph.",
+    order: 2,
+    parentElement: completeResponse
+  });
+  completeContent.parentElement = completeResponse;
+
+  const user = new FakeElement({ text: "User question", order: 1 });
+  const main = new FakeElement({
+    selectors: {
+      '[data-testid*="user-message"]': [user],
+      '[class*="font-claude-response"]': [
+        completeResponse,
+        firstParagraph,
+        secondParagraph
+      ]
+    }
+  });
+  const root = {
+    title: "Nested fragments - Claude",
+    location: { href: "https://claude.ai/chat/nested" },
+    querySelector: (selector) => (selector === "main" ? main : null),
+    querySelectorAll: () => []
+  };
+
+  const result = new ClaudeAdapter().readConversation(root);
+
+  assert.deepEqual(
+    result.messages.map(({ role, content }) => [role, content]),
+    [
+      ["user", "User question"],
+      ["assistant", "First paragraph.\n\nSecond paragraph."]
     ]
   );
 });
