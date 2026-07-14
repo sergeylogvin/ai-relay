@@ -27,3 +27,6 @@ export {
   getDuplicateKey,
   getDuplicateRecordIds
 } from "./duplicates.js";
+export {
+  mergeDuplicateGroup
+} from "./merge-duplicates.js";
