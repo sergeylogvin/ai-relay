@@ -16,6 +16,7 @@ export { createLibraryRecord } from "./record.js";
 export { matchesLibraryQuery } from "./search.js";
 export {
   filterLibraryRecords,
+  listLibraryCollections,
   listLibraryTags,
   normalizeTags,
   sortLibraryRecords,
