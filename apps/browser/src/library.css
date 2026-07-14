@@ -462,3 +462,33 @@ textarea {
 .collections-panel__action--danger {
   color: #b42318;
 }
+
+
+.bulk-actions {
+  align-items: center;
+  border-top: 1px solid rgba(127, 127, 127, 0.25);
+  bottom: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  left: 0;
+  padding: 10px 12px;
+  position: sticky;
+  right: 0;
+  z-index: 10;
+}
+
+.bulk-actions__summary {
+  font-weight: 600;
+  margin-right: auto;
+}
+
+.bulk-actions button {
+  cursor: pointer;
+  font: inherit;
+}
+
+.bulk-actions button:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
