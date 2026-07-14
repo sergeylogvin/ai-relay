@@ -33,3 +33,9 @@ export {
 export {
   planLibraryCleanup
 } from "./cleanup.js";
+export {
+  LIBRARY_SNAPSHOT_VERSION,
+  createLibrarySnapshot,
+  serializeLibrarySnapshot,
+  getLibrarySnapshotFilename
+} from "./snapshot.js";
