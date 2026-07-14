@@ -52,6 +52,22 @@ function extractContent(element) {
   );
 }
 
+function findAssistantContentFromActionBar(actionBar, conversationRoot) {
+  let candidate = actionBar?.parentElement ?? null;
+
+  while (candidate && candidate !== conversationRoot) {
+    const contentElement = firstMatchingElement(
+      candidate,
+      CLAUDE_SELECTORS.messageContent
+    );
+
+    if (contentElement) return contentElement;
+    candidate = candidate.parentElement;
+  }
+
+  return null;
+}
+
 function deduplicateMessages(messages) {
   const seen = new Set();
   const result = [];
@@ -92,6 +108,15 @@ export class ClaudeAdapter {
     const conversationRoot =
       firstMatchingElement(root, CLAUDE_SELECTORS.conversationRoot) ?? root;
 
+    const assistantFallbacks = allMatchingElements(
+      conversationRoot,
+      CLAUDE_SELECTORS.assistantActionBar
+    )
+      .map((actionBar) =>
+        findAssistantContentFromActionBar(actionBar, conversationRoot)
+      )
+      .filter(Boolean);
+
     const candidates = [
       ...allMatchingElements(
         conversationRoot,
@@ -100,7 +125,11 @@ export class ClaudeAdapter {
       ...allMatchingElements(
         conversationRoot,
         CLAUDE_SELECTORS.assistantMessage
-      ).map((element) => ({ role: "assistant", element }))
+      ).map((element) => ({ role: "assistant", element })),
+      ...assistantFallbacks.map((element) => ({
+        role: "assistant",
+        element
+      }))
     ];
 
     candidates.sort((left, right) => {

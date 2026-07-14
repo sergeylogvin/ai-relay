@@ -15,12 +15,19 @@ export const CLAUDE_SELECTORS = Object.freeze({
     '[data-testid*="model-response"]',
     '[data-message-author-role="assistant"]',
     '[class*="font-claude-message"]',
-    '[class*="assistant-message"]'
+    '[class*="assistant-message"]',
+    '[class*="font-claude-response"]',
+    ".standard-markdown"
+  ]),
+  assistantActionBar: Object.freeze([
+    '[role="group"][aria-label="Message actions"]',
+    '[data-testid="action-bar-copy"]'
   ]),
   messageContent: Object.freeze([
     '[data-testid*="message-content"]',
     ".prose",
-    '[class*="markdown"]'
+    '[class*="markdown"]',
+    '[class*="font-claude-response"]'
   ]),
   conversationTitle: Object.freeze([
     'button[data-testid*="conversation-title"]',

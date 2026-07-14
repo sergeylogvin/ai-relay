@@ -54,6 +54,28 @@ function isContentEditable(element) {
   );
 }
 
+function setContentEditableValue(element, value, root) {
+  if (
+    typeof element.replaceChildren !== "function" ||
+    typeof root.createDocumentFragment !== "function" ||
+    typeof root.createElement !== "function" ||
+    typeof root.createTextNode !== "function"
+  ) {
+    element.textContent = value;
+    return;
+  }
+
+  const fragment = root.createDocumentFragment();
+  const lines = value.split("\n");
+
+  lines.forEach((line, index) => {
+    if (index > 0) fragment.append(root.createElement("br"));
+    if (line !== "") fragment.append(root.createTextNode(line));
+  });
+
+  element.replaceChildren(fragment);
+}
+
 function readComposerValue(element) {
   const tagName = String(element.tagName ?? "").toUpperCase();
 
@@ -92,7 +114,7 @@ export function insertContextIntoComposer({
   if (tagName === "TEXTAREA" || tagName === "INPUT") {
     setFormControlValue(composer, normalizedContext, root);
   } else if (isContentEditable(composer)) {
-    composer.textContent = normalizedContext;
+    setContentEditableValue(composer, normalizedContext, root);
   } else {
     throw new ContextComposerNotFoundError(providerId);
   }

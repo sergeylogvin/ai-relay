@@ -8,12 +8,14 @@ class FakeElement {
   constructor({
     text = "",
     selectors = {},
-    order = 0
+    order = 0,
+    parentElement = null
   } = {}) {
     this.innerText = text;
     this.textContent = text;
     this.selectors = selectors;
     this.order = order;
+    this.parentElement = parentElement;
   }
 
   querySelector(selector) {
@@ -157,6 +159,41 @@ test("ClaudeAdapter reads messages in document order", () => {
       "Goal: Build a 12-month SEO forecast.",
       "Decision: Use GA4 organic sessions as the baseline.",
       "Todo: Add minimal, optimal, and premium scenarios."
+    ]
+  );
+});
+
+test("ClaudeAdapter finds assistant responses from their action bars", () => {
+  const assistantContent = new FakeElement({
+    text: "Assistant answer discovered from the action bar.",
+    order: 2
+  });
+  const turn = new FakeElement({
+    selectors: { ".prose": assistantContent },
+    order: 2
+  });
+  const actionBar = new FakeElement({ order: 2, parentElement: turn });
+  const user = new FakeElement({ text: "User question", order: 1 });
+  const main = new FakeElement({
+    selectors: {
+      '[data-testid*="user-message"]': [user],
+      '[role="group"][aria-label="Message actions"]': [actionBar]
+    }
+  });
+  const root = {
+    title: "Fallback - Claude",
+    location: { href: "https://claude.ai/chat/fallback" },
+    querySelector: (selector) => (selector === "main" ? main : null),
+    querySelectorAll: () => []
+  };
+
+  const result = new ClaudeAdapter().readConversation(root);
+
+  assert.deepEqual(
+    result.messages.map(({ role, content }) => [role, content]),
+    [
+      ["user", "User question"],
+      ["assistant", "Assistant answer discovered from the action bar."]
     ]
   );
 });
