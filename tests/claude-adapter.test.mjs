@@ -129,12 +129,12 @@ test("ClaudeAdapter matches only claude.ai", () => {
   );
 });
 
-test("ClaudeAdapter reports conservative capabilities", () => {
+test("ClaudeAdapter reports safe context insertion support", () => {
   const adapter = new ClaudeAdapter();
 
   assert.deepEqual(adapter.capabilities(), {
     readConversation: true,
-    insertContext: false,
+    insertContext: true,
     uploadFiles: false,
     readLimits: false
   });

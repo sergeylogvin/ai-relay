@@ -26,5 +26,12 @@ export const CLAUDE_SELECTORS = Object.freeze({
     'button[data-testid*="conversation-title"]',
     '[data-testid*="conversation-title"]',
     "h1"
+  ]),
+  composer: Object.freeze([
+    'div.ProseMirror[contenteditable="true"]',
+    '[data-testid*="composer"] [contenteditable="true"]',
+    'div[contenteditable="true"][data-placeholder]',
+    'textarea[placeholder*="Claude" i]',
+    "main textarea"
   ])
 });

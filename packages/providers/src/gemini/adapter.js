@@ -1,4 +1,5 @@
 import { GEMINI_SELECTORS } from "./selectors.js";
+import { insertContextIntoComposer } from "../context-insertion.js";
 
 function normalizeText(value) {
   return String(value ?? "")
@@ -81,7 +82,7 @@ export class GeminiAdapter {
   capabilities() {
     return Object.freeze({
       readConversation: true,
-      insertContext: false,
+      insertContext: true,
       uploadFiles: false,
       readLimits: false
     });
@@ -129,6 +130,15 @@ export class GeminiAdapter {
       title: this.readTitle(root),
       url: root.location?.href ?? null,
       messages: Object.freeze(messages)
+    });
+  }
+
+  insertContext(context, root = document) {
+    return insertContextIntoComposer({
+      providerId: this.id,
+      root,
+      selectors: GEMINI_SELECTORS.composer,
+      context
     });
   }
 
