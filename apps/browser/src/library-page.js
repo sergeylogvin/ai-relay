@@ -1,3 +1,5 @@
+let duplicateRecordIds = new Set();
+import { getDuplicateRecordIds } from "./library/duplicates.js";
 import { ConversationLibrary } from "./library/library.js";
 import { BrowserStorageLibraryAdapter } from "./library/browser-storage-adapter.js";
 import {
@@ -137,6 +139,10 @@ const continuationProviderButtons = document.querySelectorAll(
 
 let selectedRecord = null;
 let allRecords = [];
+
+function isDuplicateRecord(record) {
+  return duplicateRecordIds.has(record.id);
+}
 
 function setStatus(message) {
   status.textContent = message;
@@ -426,6 +432,7 @@ exportLibraryButton.addEventListener("click", async () => {
 
   try {
     const records = await library.list();
+    duplicateRecordIds = getDuplicateRecordIds(records);
     const content = serializeLibraryBackup(records);
     const date = new Date().toISOString().slice(0, 10);
 
@@ -553,3 +560,17 @@ deleteRecordButton.addEventListener("click", async () => {
 });
 
 loadLibrary();
+
+const duplicatesOnlyInput = document.querySelector("#duplicates-only");
+
+function applyDuplicateVisibility() {
+  if (!duplicatesOnlyInput) return;
+
+  const duplicatesOnly = duplicatesOnlyInput.checked;
+  document.querySelectorAll("[data-id]").forEach((element) => {
+    const duplicate = element.dataset.duplicate === "true";
+    element.hidden = duplicatesOnly && !duplicate;
+  });
+}
+
+duplicatesOnlyInput?.addEventListener("change", applyDuplicateVisibility);
