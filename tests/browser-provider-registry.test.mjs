@@ -35,6 +35,7 @@ test("manifest exposes provider modules only on supported hosts", async () => {
         "providers/*/*.js",
         "core/*.js",
         "export/*.js",
+    "capture-metadata.js",
     "library/*.js"
       ],
       matches: [
