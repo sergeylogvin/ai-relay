@@ -8,12 +8,14 @@ class FakeElement {
   constructor({
     text = "",
     selectors = {},
-    order = 0
+    order = 0,
+    parentElement = null
   } = {}) {
     this.innerText = text;
     this.textContent = text;
     this.selectors = selectors;
     this.order = order;
+    this.parentElement = parentElement;
   }
 
   querySelector(selector) {
@@ -43,6 +45,17 @@ class FakeElement {
     }
 
     return 0;
+  }
+
+  contains(other) {
+    let candidate = other;
+
+    while (candidate) {
+      if (candidate === this) return true;
+      candidate = candidate.parentElement;
+    }
+
+    return false;
   }
 }
 
@@ -157,6 +170,66 @@ test("GeminiAdapter reads messages in document order", () => {
       "Goal: Complete the provider integration layer.",
       "Decision: Use isolated adapters per provider.",
       "Todo: Add a provider registry after Gemini."
+    ]
+  );
+});
+
+test("GeminiAdapter keeps complete turns instead of nested UI fragments", () => {
+  const userContent = new FakeElement({
+    text: "Name three benefits of electronic signatures.",
+    order: 1
+  });
+  const userTurn = new FakeElement({
+    selectors: { ".query-text": userContent },
+    order: 1
+  });
+  const userLabel = new FakeElement({
+    text: "You said",
+    order: 1,
+    parentElement: userTurn
+  });
+  userContent.parentElement = userTurn;
+
+  const assistantContent = new FakeElement({
+    text: "They save time, reduce costs, and improve traceability.",
+    order: 2
+  });
+  const assistantTurn = new FakeElement({
+    selectors: { ".response-content": assistantContent },
+    order: 2
+  });
+  const assistantFragment = new FakeElement({
+    text: "They save time",
+    order: 2,
+    parentElement: assistantTurn
+  });
+  assistantContent.parentElement = assistantTurn;
+
+  const main = new FakeElement({
+    selectors: {
+      "user-query": [userTurn],
+      '[class*="user-query"]': [userLabel],
+      "model-response": [assistantTurn],
+      '[class*="model-response"]': [assistantFragment]
+    }
+  });
+  const root = {
+    title: "Benefits - Gemini",
+    location: { href: "https://gemini.google.com/app/example" },
+    querySelector: (selector) => (selector === "main" ? main : null),
+    querySelectorAll: () => []
+  };
+
+  const result = new GeminiAdapter().readConversation(root);
+
+  assert.deepEqual(
+    result.messages.map(({ role, content }) => [role, content]),
+    [
+      ["user", "Name three benefits of electronic signatures."],
+      [
+        "assistant",
+        "They save time, reduce costs, and improve traceability."
+      ]
     ]
   );
 });
