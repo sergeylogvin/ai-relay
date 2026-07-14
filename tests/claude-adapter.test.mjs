@@ -259,6 +259,45 @@ test("ClaudeAdapter keeps one complete assistant turn instead of nested fragment
   );
 });
 
+test("ClaudeAdapter keeps assistant content that follows a tool or artifact block", () => {
+  const initialBlock = new FakeElement({
+    text: "I will create the requested file.",
+    order: 2
+  });
+  const completeTurn = new FakeElement({
+    text: [
+      "I will create the requested file.",
+      "",
+      "The file is ready. Download it above."
+    ].join("\n"),
+    selectors: { ".prose": initialBlock },
+    order: 2
+  });
+  initialBlock.parentElement = completeTurn;
+
+  const user = new FakeElement({ text: "Create a Markdown file", order: 1 });
+  const main = new FakeElement({
+    selectors: {
+      '[data-testid*="user-message"]': [user],
+      '[class*="font-claude-response"]': [completeTurn, initialBlock]
+    }
+  });
+  const root = {
+    title: "Artifact response - Claude",
+    location: { href: "https://claude.ai/chat/artifact" },
+    querySelector: (selector) => (selector === "main" ? main : null),
+    querySelectorAll: () => []
+  };
+
+  const result = new ClaudeAdapter().readConversation(root);
+
+  assert.equal(result.messages.length, 2);
+  assert.equal(
+    result.messages[1].content,
+    "I will create the requested file.\n\nThe file is ready. Download it above."
+  );
+});
+
 test("Claude fixture documents expected stable selector roles", async () => {
   const fixture = await readFile(
     new URL("./fixtures/claude/basic.html", import.meta.url),
