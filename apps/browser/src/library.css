@@ -352,3 +352,23 @@ textarea {
 .organization-panel input[list] {
   width: 100%;
 }
+
+.library-filter--duplicates {
+  align-items: center;
+  display: inline-flex;
+  gap: 0.4rem;
+}
+
+[data-duplicate="true"] {
+  position: relative;
+}
+
+[data-duplicate="true"]::after {
+  border-radius: 999px;
+  content: "Duplicate";
+  font-size: 0.7rem;
+  font-weight: 600;
+  line-height: 1;
+  opacity: 0.72;
+  padding: 0.3rem 0.45rem;
+}
