@@ -10,6 +10,37 @@ function normalizeText(value) {
     .trim();
 }
 
+function removeConsecutiveDuplicateLines(value) {
+  const lines = String(value ?? "").split("\n");
+  const result = [];
+
+  for (let index = 0; index < lines.length; ) {
+    const normalizedLine = lines[index].trim();
+    let nextIndex = index + 1;
+
+    while (
+      normalizedLine !== "" &&
+      nextIndex < lines.length &&
+      lines[nextIndex].trim() === normalizedLine
+    ) {
+      nextIndex += 1;
+    }
+
+    // Claude can expose the same internal status label twice in one turn:
+    // once visually and once through accessibility text. Neither copy belongs
+    // in a portable conversation handoff.
+    if (normalizedLine !== "" && nextIndex - index > 1) {
+      index = nextIndex;
+      continue;
+    }
+
+    result.push(lines[index]);
+    index += 1;
+  }
+
+  return normalizeText(result.join("\n"));
+}
+
 function firstMatchingElement(root, selectors) {
   for (const selector of selectors) {
     const element = root.querySelector(selector);
@@ -51,11 +82,14 @@ function extractContent(element, role) {
   );
 
   if (role === "assistant") {
-    const completeTurn = normalizeText(
+    const cleanNestedContent = removeConsecutiveDuplicateLines(nestedContent);
+    const completeTurn = removeConsecutiveDuplicateLines(
       element.innerText ?? element.textContent
     );
 
-    if (completeTurn.length > nestedContent.length) return completeTurn;
+    if (completeTurn.length > cleanNestedContent.length) return completeTurn;
+
+    return cleanNestedContent;
   }
 
   return nestedContent;
