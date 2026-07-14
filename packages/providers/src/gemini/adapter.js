@@ -52,6 +52,16 @@ function extractContent(element) {
   );
 }
 
+function removeNestedElements(elements) {
+  return elements.filter(
+    (element) =>
+      !elements.some(
+        (candidate) =>
+          candidate !== element && candidate.contains?.(element)
+      )
+  );
+}
+
 function deduplicateMessages(messages) {
   const seen = new Set();
   const result = [];
@@ -92,15 +102,22 @@ export class GeminiAdapter {
     const conversationRoot =
       firstMatchingElement(root, GEMINI_SELECTORS.conversationRoot) ?? root;
 
-    const candidates = [
-      ...allMatchingElements(
+    const userElements = removeNestedElements(
+      allMatchingElements(
         conversationRoot,
         GEMINI_SELECTORS.userMessage
-      ).map((element) => ({ role: "user", element })),
-      ...allMatchingElements(
+      )
+    );
+    const assistantElements = removeNestedElements(
+      allMatchingElements(
         conversationRoot,
         GEMINI_SELECTORS.assistantMessage
-      ).map((element) => ({ role: "assistant", element }))
+      )
+    );
+
+    const candidates = [
+      ...userElements.map((element) => ({ role: "user", element })),
+      ...assistantElements.map((element) => ({ role: "assistant", element }))
     ];
 
     candidates.sort((left, right) => {
