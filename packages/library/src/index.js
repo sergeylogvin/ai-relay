@@ -66,3 +66,11 @@ export {
   planBulkExport,
   summarizeBulkSelection
 } from "./bulk-operations.js";
+export {
+  DEFAULT_LIBRARY_PREFERENCES,
+  normalizeLibraryPreferences,
+  mergeLibraryPreferences,
+  diffLibraryPreferences,
+  resetLibraryPreferences,
+  shouldConfirmLibraryAction
+} from "./preferences.js";
