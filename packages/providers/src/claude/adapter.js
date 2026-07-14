@@ -43,13 +43,22 @@ function allMatchingElements(root, selectors) {
   return result;
 }
 
-function extractContent(element) {
+function extractContent(element, role) {
   const contentElement =
     firstMatchingElement(element, CLAUDE_SELECTORS.messageContent) ?? element;
-
-  return normalizeText(
+  const nestedContent = normalizeText(
     contentElement.innerText ?? contentElement.textContent
   );
+
+  if (role === "assistant") {
+    const completeTurn = normalizeText(
+      element.innerText ?? element.textContent
+    );
+
+    if (completeTurn.length > nestedContent.length) return completeTurn;
+  }
+
+  return nestedContent;
 }
 
 function findAssistantContentFromActionBar(actionBar, conversationRoot) {
@@ -163,7 +172,7 @@ export class ClaudeAdapter {
         .map(({ role, element }, index) => ({
           id: `claude-message-${index + 1}`,
           role,
-          content: extractContent(element)
+          content: extractContent(element, role)
         }))
         .filter(({ content }) => content !== "")
     );
