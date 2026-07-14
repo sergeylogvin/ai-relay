@@ -90,3 +90,12 @@ export {
   exportSavedViews,
   importSavedViews
 } from "./saved-views.js";
+export {
+  normalizeShortcut,
+  normalizeShortcutList,
+  shortcutSignature,
+  shortcutMatchesEvent,
+  isEditableTarget,
+  formatShortcutLabel,
+  createShortcutRegistry
+} from "./keyboard-shortcuts.js";
