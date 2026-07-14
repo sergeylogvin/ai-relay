@@ -2,6 +2,11 @@ import { detectProvider } from "./provider-detection.js";
 import { createZipArchive } from "./export/zip.js";
 import { ConversationLibrary } from "./library/library.js";
 import { BrowserStorageLibraryAdapter } from "./library/browser-storage-adapter.js";
+import {
+  clearPendingHandoff,
+  loadPendingHandoff,
+  savePendingHandoff
+} from "./handoff-session-storage.js";
 
 const captureButton = document.querySelector("#captureButton");
 const copyMarkdownButton = document.querySelector("#copyMarkdownButton");
@@ -120,6 +125,13 @@ function renderCapture(capture) {
 async function initialize() {
   const tab = await getActiveTab();
   providerBadge.textContent = detectProvider(tab?.url ?? "");
+
+  const pendingCapture = await loadPendingHandoff();
+
+  if (pendingCapture) {
+    renderCapture(pendingCapture);
+    setStatus("Restored the pending handoff. Ready to insert.");
+  }
 }
 
 captureButton.addEventListener("click", async () => {
@@ -141,6 +153,7 @@ captureButton.addEventListener("click", async () => {
       throw new Error(response?.error ?? "Capture failed.");
     }
 
+    await savePendingHandoff(response.capture);
     renderCapture(response.capture);
   } catch (error) {
     setStatus(
@@ -305,7 +318,18 @@ openLibraryButton.addEventListener("click", () => {
   chrome.runtime.openOptionsPage();
 });
 
-clearButton.addEventListener("click", reset);
+clearButton.addEventListener("click", async () => {
+  try {
+    await clearPendingHandoff();
+    reset();
+  } catch (error) {
+    setStatus(
+      error instanceof Error
+        ? error.message
+        : "Unable to clear the pending handoff."
+    );
+  }
+});
 
 initialize().catch((error) => {
   setStatus(

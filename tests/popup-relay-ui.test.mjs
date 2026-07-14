@@ -32,6 +32,18 @@ test("popup consumes export-engine files from capture response", async () => {
   assert.match(source, /capture\.messageCount/);
 });
 
+test("popup persists a pending handoff between tabs", async () => {
+  const source = await readFile(
+    resolve(root, "apps/browser/src/popup.js"),
+    "utf8"
+  );
+
+  assert.match(source, /savePendingHandoff\(response\.capture\)/);
+  assert.match(source, /loadPendingHandoff\(\)/);
+  assert.match(source, /renderCapture\(pendingCapture\)/);
+  assert.match(source, /clearPendingHandoff\(\)/);
+});
+
 test("popup requires explicit user actions for copy and download", async () => {
   const source = await readFile(
     resolve(root, "apps/browser/src/popup.js"),
