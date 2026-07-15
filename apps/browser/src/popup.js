@@ -13,7 +13,7 @@ import {
   formatMigrationRoute,
   formatProviderLabel
 } from "./continue-in-provider.js";
-import { copyHandoffForDesktop } from "./desktop-handoff.js";
+import { copyHandoffForDesktop, storeHandoffForDesktop } from "./desktop-handoff.js";
 
 const captureButton = document.querySelector("#captureButton");
 const copyMarkdownButton = document.querySelector("#copyMarkdownButton");
@@ -211,6 +211,25 @@ function getActiveHandoffMarkdown() {
   return lastCapture?.files?.["handoff.md"] ?? lastCapture?.markdown ?? "";
 }
 
+function buildDesktopHandoffMetadata(capture = lastCapture) {
+  return {
+    provider: capture?.provider ?? "unknown",
+    title: capture?.title ?? "Untitled conversation",
+    url: capture?.url ?? null,
+    handoffMode: capture?.handoffMode ?? currentHandoffMode
+  };
+}
+
+async function syncDesktopHandoff(capture = lastCapture) {
+  const markdown = getActiveHandoffMarkdown();
+
+  if (!markdown) {
+    return;
+  }
+
+  await storeHandoffForDesktop(markdown, buildDesktopHandoffMetadata(capture));
+}
+
 function renderCapture(capture) {
   currentHandoffMode = capture?.handoffMode ?? "full";
   handoffModeSelect.value = currentHandoffMode;
@@ -237,6 +256,7 @@ function renderCapture(capture) {
 async function persistCapture(capture) {
   await savePendingHandoff(capture);
   renderCapture(capture);
+  await syncDesktopHandoff(capture);
 }
 
 async function initialize() {
@@ -248,6 +268,7 @@ async function initialize() {
 
   if (pendingCapture) {
     renderCapture(pendingCapture);
+    await syncDesktopHandoff(pendingCapture);
     setStatus("Restored the pending handoff. Ready to insert or continue.");
   }
 }
@@ -298,6 +319,7 @@ handoffModeSelect.addEventListener("change", async () => {
 
   try {
     await savePendingHandoff(updatedCapture);
+    await syncDesktopHandoff(updatedCapture);
     setStatus(`Updated handoff mode to ${handoffModeSelect.selectedOptions[0].textContent}.`);
   } catch (error) {
     setStatus(
@@ -430,7 +452,10 @@ copyForDesktopButton.addEventListener("click", async () => {
   copyForDesktopButton.disabled = true;
 
   try {
-    const result = await copyHandoffForDesktop(markdown);
+    const result = await copyHandoffForDesktop(
+      markdown,
+      buildDesktopHandoffMetadata()
+    );
 
     if (result.fallback === "clipboard") {
       setStatus(

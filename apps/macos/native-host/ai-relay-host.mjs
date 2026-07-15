@@ -1,5 +1,11 @@
 #!/usr/bin/env node
 
+import {
+  normalizeHandoffInboxRecord,
+  resolveHandoffInboxPath,
+  writeHandoffInbox
+} from "../shared/handoff-inbox.mjs";
+
 const HOST_NAME = "com.ai_relay.native_host";
 
 function readExactBytes(source, length) {
@@ -67,30 +73,54 @@ async function copyToClipboard(text) {
   });
 }
 
-async function handleMessage(message) {
-  if (message?.type !== "COPY_HANDOFF") {
-    return {
-      ok: false,
-      error: `Unsupported message type: ${message?.type ?? "unknown"}`
-    };
-  }
-
+async function persistHandoff(message) {
   const markdown = String(message.markdown ?? "").trim();
 
   if (!markdown) {
+    throw new TypeError("Handoff markdown is required.");
+  }
+
+  const record = await writeHandoffInbox(
+    {
+      markdown,
+      metadata: message.metadata ?? {}
+    },
+    resolveHandoffInboxPath()
+  );
+
+  return record;
+}
+
+async function handleMessage(message) {
+  const type = message?.type;
+
+  if (type !== "COPY_HANDOFF" && type !== "STORE_HANDOFF") {
     return {
       ok: false,
-      error: "Handoff markdown is required."
+      error: `Unsupported message type: ${type ?? "unknown"}`
     };
   }
 
-  await copyToClipboard(markdown);
+  try {
+    const record = await persistHandoff(message);
 
-  return {
-    ok: true,
-    host: HOST_NAME,
-    characters: markdown.length
-  };
+    if (type === "COPY_HANDOFF") {
+      await copyToClipboard(record.markdown);
+    }
+
+    return {
+      ok: true,
+      host: HOST_NAME,
+      characters: record.characters,
+      storedAt: record.storedAt,
+      title: record.title
+    };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : String(error)
+    };
+  }
 }
 
 async function main() {

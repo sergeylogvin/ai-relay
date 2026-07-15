@@ -1,0 +1,66 @@
+client:
+  name: basic
+  file-system: device-agnostic
+tools: {}
+targets:
+  "AIRelayMenuBar-arm64-apple-macosx-release.exe": ["<AIRelayMenuBar-arm64-apple-macosx-release.exe>"]
+  "AIRelayMenuBar-arm64-apple-macosx-release.module": ["<AIRelayMenuBar-arm64-apple-macosx-release.module>"]
+  "PackageStructure": ["<PackageStructure>"]
+  "main": ["<AIRelayMenuBar-arm64-apple-macosx-release.exe>","<AIRelayMenuBar-arm64-apple-macosx-release.module>"]
+  "test": ["<AIRelayMenuBar-arm64-apple-macosx-release.exe>","<AIRelayMenuBar-arm64-apple-macosx-release.module>"]
+default: "main"
+nodes:
+  "/Users/sergii/ai-relay/apps/macos/MenuBar/Sources/AIRelayMenuBar/":
+    is-directory-structure: true
+    content-exclusion-patterns: [".git",".build"]
+commands:
+  "/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.build/sources":
+    tool: write-auxiliary-file
+    inputs: ["<sources-file-list>","/Users/sergii/ai-relay/apps/macos/MenuBar/Sources/AIRelayMenuBar/AIRelayMenuBarApp.swift","/Users/sergii/ai-relay/apps/macos/MenuBar/Sources/AIRelayMenuBar/HandoffStore.swift"]
+    outputs: ["/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.build/sources"]
+    description: "Write auxiliary file /Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.build/sources"
+
+  "/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.product/Objects.LinkFileList":
+    tool: write-auxiliary-file
+    inputs: ["<link-file-list>","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.build/AIRelayMenuBarApp.swift.o","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.build/HandoffStore.swift.o"]
+    outputs: ["/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.product/Objects.LinkFileList"]
+    description: "Write auxiliary file /Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.product/Objects.LinkFileList"
+
+  "/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/swift-version--1AB21518FC5DEDBE.txt":
+    tool: write-auxiliary-file
+    inputs: ["<swift-get-version>","/Library/Developer/CommandLineTools/usr/bin/swiftc"]
+    outputs: ["/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/swift-version--1AB21518FC5DEDBE.txt"]
+    always-out-of-date: "true"
+    description: "Write auxiliary file /Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/swift-version--1AB21518FC5DEDBE.txt"
+
+  "<AIRelayMenuBar-arm64-apple-macosx-release.exe>":
+    tool: phony
+    inputs: ["/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar"]
+    outputs: ["<AIRelayMenuBar-arm64-apple-macosx-release.exe>"]
+
+  "<AIRelayMenuBar-arm64-apple-macosx-release.module>":
+    tool: phony
+    inputs: ["/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.build/AIRelayMenuBarApp.swift.o","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.build/HandoffStore.swift.o","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/Modules/AIRelayMenuBar.swiftmodule"]
+    outputs: ["<AIRelayMenuBar-arm64-apple-macosx-release.module>"]
+
+  "C.AIRelayMenuBar-arm64-apple-macosx-release.exe":
+    tool: shell
+    inputs: ["/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.build/AIRelayMenuBarApp.swift.o","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.build/HandoffStore.swift.o","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.product/Objects.LinkFileList"]
+    outputs: ["/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar"]
+    description: "Linking ./.build/arm64-apple-macosx/release/AIRelayMenuBar"
+    args: ["/Library/Developer/CommandLineTools/usr/bin/swiftc","-L","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release","-o","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar","-module-name","AIRelayMenuBar","-Xlinker","-no_warn_duplicate_libraries","-emit-executable","-Xlinker","-dead_strip","-Xlinker","-alias","-Xlinker","_AIRelayMenuBar_main","-Xlinker","_main","-Xlinker","-rpath","-Xlinker","@loader_path","@/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.product/Objects.LinkFileList","-Xlinker","-rpath","-Xlinker","/Library/Developer/CommandLineTools/usr/lib/swift-6.2/macosx","-target","arm64-apple-macosx13.0","-I","/Library/Developer/CommandLineTools/Library/Developer/Frameworks","-L","/Library/Developer/CommandLineTools/Library/Developer/Frameworks","-plugin-path","/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing","-sdk","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-g"]
+
+  "C.AIRelayMenuBar-arm64-apple-macosx-release.module":
+    tool: shell
+    inputs: ["/Users/sergii/ai-relay/apps/macos/MenuBar/Sources/AIRelayMenuBar/AIRelayMenuBarApp.swift","/Users/sergii/ai-relay/apps/macos/MenuBar/Sources/AIRelayMenuBar/HandoffStore.swift","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/swift-version--1AB21518FC5DEDBE.txt","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.build/sources"]
+    outputs: ["/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.build/AIRelayMenuBarApp.swift.o","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.build/HandoffStore.swift.o","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/Modules/AIRelayMenuBar.swiftmodule"]
+    description: "Compiling Swift Module 'AIRelayMenuBar' (2 sources)"
+    args: ["/Library/Developer/CommandLineTools/usr/bin/swiftc","-module-name","AIRelayMenuBar","-emit-dependencies","-emit-module","-emit-module-path","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/Modules/AIRelayMenuBar.swiftmodule","-output-file-map","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.build/output-file-map.json","-whole-module-optimization","-num-threads","8","-c","@/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar.build/sources","-I","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/Modules","-target","arm64-apple-macosx13.0","-whole-module-optimization","-num-threads","8","-serialize-diagnostics","-O","-j8","-DSWIFT_PACKAGE","-DSWIFT_MODULE_RESOURCE_BUNDLE_UNAVAILABLE","-module-cache-path","/Users/sergii/ai-relay/apps/macos/MenuBar/.build/arm64-apple-macosx/release/ModuleCache","-parseable-output","-Xfrontend","-entry-point-function-name","-Xfrontend","AIRelayMenuBar_main","-swift-version","5","-I","/Library/Developer/CommandLineTools/Library/Developer/Frameworks","-L","/Library/Developer/CommandLineTools/Library/Developer/Frameworks","-plugin-path","/Library/Developer/CommandLineTools/usr/lib/swift/host/plugins/testing","-sdk","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-g","-Xcc","-isysroot","-Xcc","/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk","-Xcc","-fPIC","-Xcc","-g","-package-name","menubar"]
+
+  "PackageStructure":
+    tool: package-structure-tool
+    inputs: ["/Users/sergii/ai-relay/apps/macos/MenuBar/Sources/AIRelayMenuBar/","/Users/sergii/ai-relay/apps/macos/MenuBar/Package.swift","/Users/sergii/ai-relay/apps/macos/MenuBar/Package.resolved"]
+    outputs: ["<PackageStructure>"]
+    description: "Planning build"
+    allow-missing-inputs: true
+
