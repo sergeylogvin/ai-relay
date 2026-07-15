@@ -5,14 +5,8 @@ import {
   HANDOFF_INBOX_HTTP_PORT,
   HANDOFF_INBOX_HTTP_STORE_PATH
 } from "./inbox-bridge-config.mjs";
-import {
-  resolveHandoffInboxPath,
-  writeHandoffInbox
-} from "./handoff-inbox.mjs";
-import {
-  resolvePasteRequestPath,
-  writePasteRequest
-} from "./paste-request.mjs";
+import { resolveHandoffInboxPath } from "./handoff-inbox.mjs";
+import { persistHandoffWithOptionalPasteRequest } from "./handoff-persistence.mjs";
 
 function sendJson(response, statusCode, payload) {
   const body = `${JSON.stringify(payload)}\n`;
@@ -56,23 +50,13 @@ const server = http.createServer(async (request, response) => {
   if (request.method === "POST" && request.url === HANDOFF_INBOX_HTTP_STORE_PATH) {
     try {
       const body = await readJsonBody(request);
-      const record = await writeHandoffInbox(
+      const record = await persistHandoffWithOptionalPasteRequest(
         {
           markdown: body.markdown,
           metadata: body.metadata ?? {}
         },
         resolveHandoffInboxPath()
       );
-
-      if (body.metadata?.pasteRequested) {
-        await writePasteRequest(
-          {
-            storedAt: record.storedAt,
-            targetApp: body.metadata.targetApp ?? "front"
-          },
-          resolvePasteRequestPath()
-        );
-      }
 
       sendJson(response, 200, {
         ok: true,

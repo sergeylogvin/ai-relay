@@ -8,12 +8,15 @@ struct PasteRequestRecord: Codable {
 
 enum PasteTargetApp: String {
     case cursor
+    case chatgpt
     case front
 
     init(rawValue: String) {
         switch rawValue.lowercased() {
         case "cursor":
             self = .cursor
+        case "chatgpt", "cowork":
+            self = .chatgpt
         default:
             self = .front
         }
@@ -62,6 +65,8 @@ final class PasteRequestMonitor {
         switch target {
         case .cursor:
             return isCursorApp(app)
+        case .chatgpt:
+            return isChatGPTApp(app)
         case .front:
             return !isAIRelayApp(app)
         }
@@ -77,6 +82,15 @@ final class PasteRequestMonitor {
         let name = app.localizedName?.lowercased() ?? ""
 
         return bundleId.contains("cursor") || name == "cursor"
+    }
+
+    private func isChatGPTApp(_ app: NSRunningApplication) -> Bool {
+        let bundleId = app.bundleIdentifier?.lowercased() ?? ""
+        let name = app.localizedName?.lowercased() ?? ""
+
+        return bundleId.contains("chatgpt")
+            || bundleId.contains("openai.chat")
+            || name.contains("chatgpt")
     }
 
     private func isAIRelayApp(_ app: NSRunningApplication) -> Bool {
