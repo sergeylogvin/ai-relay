@@ -60,6 +60,8 @@ test("browser manifest supports the initial providers", async () => {
     "http://127.0.0.1:17831/*",
     "https://chatgpt.com/*",
     "https://claude.ai/*",
-    "https://gemini.google.com/*"
+    "https://gemini.google.com/*",
+    "https://google.com/*",
+    "https://www.google.com/*"
   ]);
 });

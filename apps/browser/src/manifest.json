@@ -18,6 +18,8 @@
     "https://claude.ai/*",
     "https://chatgpt.com/*",
     "https://gemini.google.com/*",
+    "https://www.google.com/*",
+    "https://google.com/*",
     "http://127.0.0.1:17831/*"
   ],
   "action": {

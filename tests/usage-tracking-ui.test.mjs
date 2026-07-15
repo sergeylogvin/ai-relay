@@ -14,9 +14,12 @@ test("popup exposes Claude usage panel and refresh action", async () => {
   assert.match(html, /id="refreshUsageButton"/);
   assert.match(html, /Account usage/);
   assert.match(popup, /refreshClaudeUsage/);
+  assert.match(popup, /refreshChatGPTUsage/);
+  assert.match(popup, /refreshGeminiUsage/);
   assert.match(popup, /syncUsageSnapshotToDesktop/);
   assert.match(popup, /usage-bar-fill/);
   assert.match(manifest, /"cookies"/);
+  assert.match(manifest, /https:\/\/www\.google\.com\/\*/);
 });
 
 test("macOS companion includes usage snapshot store", async () => {
