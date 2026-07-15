@@ -145,10 +145,23 @@ export function parseGeminiUsageCounts(
 }
 
 export function extractGeminiSessionTokens(html) {
+  const accessToken =
+    SNlM0e_RE.exec(html)?.[1] ??
+    /SNlM0e\\":\\"(.*?)\\"/.exec(html)?.[1] ??
+    "";
+  const buildLabel =
+    CFB2H_RE.exec(html)?.[1] ??
+    /cfb2h\\":\\"(.*?)\\"/.exec(html)?.[1] ??
+    "";
+  const sessionId =
+    FDRFJE_RE.exec(html)?.[1] ??
+    /FdrFJe\\":\\"(.*?)\\"/.exec(html)?.[1] ??
+    "";
+
   return {
-    accessToken: SNlM0e_RE.exec(html)?.[1] ?? "",
-    buildLabel: CFB2H_RE.exec(html)?.[1] ?? "",
-    sessionId: FDRFJE_RE.exec(html)?.[1] ?? ""
+    accessToken,
+    buildLabel,
+    sessionId
   };
 }
 

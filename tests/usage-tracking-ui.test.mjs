@@ -34,8 +34,10 @@ test("popup exposes Claude usage panel and refresh action", async () => {
   assert.match(popup, /refreshGeminiUsage/);
   assert.match(chatgptClient, /fetchProviderUsageFromTab/);
   assert.match(geminiClient, /fetchProviderUsageFromTab/);
-  assert.match(usageTabBridge, /runGeminiUsageFetchInMainWorld/);
+  assert.match(usageTabBridge, /geminiMainWorldUsageRunner/);
+  assert.match(usageTabBridge, /AI_RELAY_GEMINI_EXTRACT_TOKENS/);
   assert.match(usageTabBridge, /world: "MAIN"/);
+  assert.match(contentScript, /AI_RELAY_GEMINI_EXTRACT_TOKENS/);
   assert.match(contentScript, /AI_RELAY_FETCH_CHATGPT_USAGE/);
   assert.match(contentScript, /AI_RELAY_FETCH_GEMINI_USAGE/);
   assert.match(popup, /syncUsageSnapshotToDesktop/);

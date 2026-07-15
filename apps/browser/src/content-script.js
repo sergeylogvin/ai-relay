@@ -34,7 +34,8 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
 
   const usageFetchMessages = new Set([
     "AI_RELAY_FETCH_CHATGPT_USAGE",
-    "AI_RELAY_FETCH_GEMINI_USAGE"
+    "AI_RELAY_FETCH_GEMINI_USAGE",
+    "AI_RELAY_GEMINI_EXTRACT_TOKENS"
   ]);
 
   if (usageFetchMessages.has(message?.type)) {
