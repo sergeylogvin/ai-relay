@@ -27,9 +27,15 @@ node apps/macos/scripts/install-native-host.mjs <extension-id>
 
 ```bash
 cd ~/ai-relay
-bash apps/macos/scripts/build-menu-bar.sh
-open apps/macos/MenuBar/.build/release/AIRelayMenuBar
+npm run package:macos-menu-bar
+open apps/macos/MenuBar/dist/AIRelayMenuBar.app
 ```
+
+Use the `.app` bundle, not the raw binary from Terminal. Launching the binary directly keeps a Terminal window attached; closing that window quits the app.
+
+When the app starts, it opens a small **AI Relay window** with the latest handoff. macOS may hide the top menu bar item on crowded MacBooks; the Dock icon remains the reliable entry point.
+
+The menu bar label shows the latest handoff title when macOS leaves room for it. When no handoff is stored yet, it shows `AI Relay`.
 
 Keep the menu bar app running in the background. After each browser capture, the latest handoff appears in the menu within a couple of seconds.
 

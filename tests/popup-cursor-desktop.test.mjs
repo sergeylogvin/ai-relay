@@ -25,9 +25,24 @@ test("popup exposes Cursor and desktop copy actions", async () => {
   assert.match(popup, /renderCursorContextPack/);
   assert.match(popup, /copyHandoffForDesktop/);
   assert.match(popup, /storeHandoffForDesktop/);
-  assert.match(popup, /syncDesktopHandoff/);
+  assert.match(popup, /formatDesktopSyncStatus/);
+  assert.match(popup, /Syncing to desktop app/);
+  assert.match(popup, /Synced "/);
+  assert.match(popup, /Click Capture to sync it to the desktop app/);
   assert.match(popup, /Cursor context pack copied/);
   assert.match(manifest, /nativeMessaging/);
+  assert.match(manifest, /127\.0\.0\.1:17831/);
+});
+
+test("desktop handoff prefers the local inbox HTTP bridge", async () => {
+  const desktopHandoff = await readFile(
+    resolve(root, "apps/browser/src/desktop-handoff.js"),
+    "utf8"
+  );
+
+  assert.match(desktopHandoff, /127\.0\.0\.1:17831\/handoff/);
+  assert.match(desktopHandoff, /storeHandoffViaHttp/);
+  assert.match(desktopHandoff, /AI_RELAY_STORE_HANDOFF/);
 });
 
 test("background can route desktop copy requests to the native host", async () => {
@@ -37,6 +52,7 @@ test("background can route desktop copy requests to the native host", async () =
   );
 
   assert.match(background, /AI_RELAY_COPY_FOR_DESKTOP/);
+  assert.match(background, /AI_RELAY_STORE_HANDOFF/);
   assert.match(background, /sendNativeMessage/);
 });
 
@@ -55,7 +71,7 @@ test("macOS native host install script and host entrypoint exist", async () => {
   );
 
   assert.match(readme, /install-native-host/);
-  assert.match(readme, /build-menu-bar/);
+  assert.match(readme, /package:macos-menu-bar/);
   assert.match(host, /COPY_HANDOFF/);
   assert.match(host, /STORE_HANDOFF/);
   assert.match(inbox, /pending-handoff\.json/);

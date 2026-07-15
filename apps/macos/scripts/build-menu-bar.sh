@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
-OUTPUT="$ROOT/apps/macos/MenuBar/.build/release/AIRelayMenuBar"
+ROOT="$(cd "$(dirname "$0")/../../.." && pwd)"
+OUTPUT="$ROOT/apps/macos/MenuBar/.build/arm64-apple-macosx/release/AIRelayMenuBar"
 
 cd "$ROOT/apps/macos/MenuBar"
 swift build -c release

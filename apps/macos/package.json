@@ -6,6 +6,7 @@
   "license": "Apache-2.0",
   "scripts": {
     "install-native-host": "node scripts/install-native-host.mjs",
-    "build-menu-bar": "bash scripts/build-menu-bar.sh"
+    "build-menu-bar": "bash scripts/build-menu-bar.sh",
+    "package-menu-bar": "bash scripts/package-menu-bar-app.sh"
   }
 }

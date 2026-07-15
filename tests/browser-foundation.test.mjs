@@ -56,6 +56,7 @@ test("browser manifest supports the initial providers", async () => {
   );
 
   assert.deepEqual(manifest.host_permissions.sort(), [
+    "http://127.0.0.1:17831/*",
     "https://chatgpt.com/*",
     "https://claude.ai/*",
     "https://gemini.google.com/*"

@@ -220,14 +220,48 @@ function buildDesktopHandoffMetadata(capture = lastCapture) {
   };
 }
 
-async function syncDesktopHandoff(capture = lastCapture) {
-  const markdown = getActiveHandoffMarkdown();
-
-  if (!markdown) {
-    return;
+function formatDesktopSyncStatus(result) {
+  if (result?.ok) {
+    return `Synced "${result.title ?? "handoff"}" to the desktop app just now.`;
   }
 
-  await storeHandoffForDesktop(markdown, buildDesktopHandoffMetadata(capture));
+  if (result?.fallback === "desktop-bridge-unavailable") {
+    return `Desktop sync failed. Run "npm run launch:macos-menu-bar", reload the extension, then click Capture again. (${result.error ?? "bridge unavailable"})`;
+  }
+
+  if (result?.skipped) {
+    return "Desktop sync skipped because the handoff is empty.";
+  }
+
+  return `Desktop sync failed after capture. (${result?.error ?? "unknown error"})`;
+}
+
+async function persistCapture(capture) {
+  await savePendingHandoff(capture);
+  renderCapture(capture);
+  setStatus("Syncing to desktop app…");
+
+  const syncResult = await syncDesktopHandoff(capture);
+  setStatus(formatDesktopSyncStatus(syncResult));
+}
+
+async function syncDesktopHandoff(capture = lastCapture) {
+  const activeCapture = capture ?? lastCapture;
+  const markdown =
+    activeCapture?.files?.["handoff.md"] ??
+    activeCapture?.markdown ??
+    "";
+
+  if (!markdown) {
+    return { ok: false, skipped: true };
+  }
+
+  const result = await storeHandoffForDesktop(
+    markdown,
+    buildDesktopHandoffMetadata(activeCapture)
+  );
+
+  return result;
 }
 
 function renderCapture(capture) {
@@ -248,15 +282,6 @@ function renderCapture(capture) {
   metadata.hidden = false;
 
   setButtonsEnabled(true);
-  setStatus(
-    `Captured ${lastCapture.messageCount ?? 0} message(s). Review before exporting or continuing.`
-  );
-}
-
-async function persistCapture(capture) {
-  await savePendingHandoff(capture);
-  renderCapture(capture);
-  await syncDesktopHandoff(capture);
 }
 
 async function initialize() {
@@ -268,8 +293,9 @@ async function initialize() {
 
   if (pendingCapture) {
     renderCapture(pendingCapture);
-    await syncDesktopHandoff(pendingCapture);
-    setStatus("Restored the pending handoff. Ready to insert or continue.");
+    setStatus(
+      "Restored the pending handoff. Click Capture to sync it to the desktop app."
+    );
   }
 }
 
@@ -319,8 +345,9 @@ handoffModeSelect.addEventListener("change", async () => {
 
   try {
     await savePendingHandoff(updatedCapture);
-    await syncDesktopHandoff(updatedCapture);
-    setStatus(`Updated handoff mode to ${handoffModeSelect.selectedOptions[0].textContent}.`);
+    setStatus("Syncing to desktop app…");
+    const syncResult = await syncDesktopHandoff(updatedCapture);
+    setStatus(formatDesktopSyncStatus(syncResult));
   } catch (error) {
     setStatus(
       error instanceof Error
