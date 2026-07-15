@@ -248,6 +248,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hotkeyController = GlobalPasteHotkeyController()
     private var panelController: HandoffPanelController?
     private var pollTimer: Timer?
+    private var bridgeTimer: Timer?
     private var workspaceObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -289,6 +290,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             if let frontApp = NSWorkspace.shared.frontmostApplication {
                 self?.handlePendingPasteRequest(for: frontApp)
             }
+        }
+
+        bridgeTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: true) { _ in
+            InboxBridgeLauncher.ensureRunning()
         }
     }
 
@@ -342,6 +347,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         pollTimer?.invalidate()
+        bridgeTimer?.invalidate()
 
         if let workspaceObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(workspaceObserver)

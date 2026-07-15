@@ -47,6 +47,8 @@ BRIDGE_DIR="$APP_DIR/Contents/Resources/inbox-bridge"
 cp "$ROOT/apps/macos/shared/inbox-http-server.mjs" "$BRIDGE_DIR/inbox-http-server.mjs"
 cp "$ROOT/apps/macos/shared/inbox-bridge-config.mjs" "$BRIDGE_DIR/inbox-bridge-config.mjs"
 cp "$ROOT/apps/macos/shared/handoff-inbox.mjs" "$BRIDGE_DIR/handoff-inbox.mjs"
+cp "$ROOT/apps/macos/shared/handoff-persistence.mjs" "$BRIDGE_DIR/handoff-persistence.mjs"
+cp "$ROOT/apps/macos/shared/paste-request.mjs" "$BRIDGE_DIR/paste-request.mjs"
 
 cat > "$BRIDGE_DIR/start-inbox-bridge.sh" <<'EOF'
 #!/usr/bin/env bash
@@ -60,8 +62,19 @@ HEALTH_URL="http://127.0.0.1:17831/health"
 
 mkdir -p "$(dirname "$PIDFILE")"
 
-if curl -fsS "$HEALTH_URL" >/dev/null 2>&1; then
-  exit 0
+bridge_running() {
+  curl -fsS "$HEALTH_URL" >/dev/null 2>&1
+}
+
+bridge_supports_paste_requests() {
+  curl -fsS "$HEALTH_URL" 2>/dev/null | grep -q '"pasteRequests":true'
+}
+
+if [[ -f "$PIDFILE" ]]; then
+  existing_pid="$(cat "$PIDFILE")"
+  if kill -0 "$existing_pid" 2>/dev/null && bridge_running && bridge_supports_paste_requests; then
+    exit 0
+  fi
 fi
 
 pkill -f "inbox-http-server.mjs" 2>/dev/null || true
@@ -69,7 +82,12 @@ sleep 0.2
 nohup node "$SERVER" >>"$LOG" 2>&1 &
 echo "$!" > "$PIDFILE"
 sleep 0.4
-curl -fsS "$HEALTH_URL" >/dev/null
+
+if ! bridge_running; then
+  echo "AI Relay inbox bridge failed to start." >&2
+  echo "Check $LOG" >&2
+  exit 1
+fi
 EOF
 chmod +x "$BRIDGE_DIR/start-inbox-bridge.sh"
 
