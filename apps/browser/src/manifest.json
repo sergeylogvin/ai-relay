@@ -7,6 +7,10 @@
     "activeTab",
     "storage"
   ],
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  },
   "host_permissions": [
     "https://claude.ai/*",
     "https://chatgpt.com/*",

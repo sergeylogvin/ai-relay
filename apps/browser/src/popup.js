@@ -9,7 +9,6 @@ import {
 } from "./handoff-session-storage.js";
 import { renderHandoffByMode } from "./export/handoff-modes.js";
 import {
-  continueInProvider,
   formatMigrationRoute,
   formatProviderLabel
 } from "./continue-in-provider.js";
@@ -349,13 +348,18 @@ for (const button of continueButtons) {
     try {
       await savePendingHandoff(lastCapture);
 
-      const result = await continueInProvider({
+      const response = await chrome.runtime.sendMessage({
+        type: "AI_RELAY_CONTINUE_IN_PROVIDER",
         targetProvider,
         handoffMarkdown: context
       });
 
+      if (!response?.ok) {
+        throw new Error(response?.error ?? "Unable to continue in provider.");
+      }
+
       setStatus(
-        `Inserted ${result.insertion?.insertedCharacters ?? context.length} character(s) in ${formatProviderLabel(targetProvider)}. Review before sending.`
+        `Inserted ${response.insertion?.insertedCharacters ?? context.length} character(s) in ${formatProviderLabel(targetProvider)}. Review before sending.`
       );
     } catch (error) {
       setStatus(

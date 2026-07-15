@@ -38,9 +38,25 @@ test("popup can continue in another provider and insert the handoff", async () =
     "utf8"
   );
 
-  assert.match(source, /continueInProvider/);
+  assert.match(source, /AI_RELAY_CONTINUE_IN_PROVIDER/);
+  assert.match(source, /chrome\.runtime\.sendMessage/);
   assert.match(source, /formatMigrationRoute/);
   assert.match(source, /savePendingHandoff\(lastCapture\)/);
+});
+
+test("background service worker continues migration after popup closes", async () => {
+  const manifest = JSON.parse(
+    await readFile(resolve(root, "apps/browser/src/manifest.json"), "utf8")
+  );
+  const background = await readFile(
+    resolve(root, "apps/browser/src/background.js"),
+    "utf8"
+  );
+
+  assert.equal(manifest.background?.service_worker, "background.js");
+  assert.equal(manifest.background?.type, "module");
+  assert.match(background, /AI_RELAY_CONTINUE_IN_PROVIDER/);
+  assert.match(background, /continueInProvider/);
 });
 
 test("continue-in-provider opens provider URLs and retries insertion", async () => {
