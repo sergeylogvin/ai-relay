@@ -14,3 +14,13 @@ export {
   ContextEngine,
   formatContextHandoff,
 } from "./context-engine.js";
+export {
+  FIT_LEVELS,
+  assessContextFit,
+  estimateTokensFromText,
+  formatContextFitBadge,
+  formatContextFitSummary,
+  formatPercent,
+  formatTokenCount,
+  resolveContextWindow
+} from "./limit-awareness.js";

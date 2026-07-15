@@ -14,6 +14,12 @@ import {
   formatProviderLabel
 } from "./continue-in-provider.js";
 import { copyHandoffForDesktop, storeHandoffForDesktop } from "./desktop-handoff.js";
+import {
+  assessContextFit,
+  formatContextFitBadge,
+  formatContextFitSummary,
+  formatTokenCount
+} from "./core/limit-awareness.js";
 
 const captureButton = document.querySelector("#captureButton");
 const copyMarkdownButton = document.querySelector("#copyMarkdownButton");
@@ -40,6 +46,12 @@ const messageCountValue = document.querySelector("#messageCountValue");
 const tokenEstimateValue = document.querySelector("#tokenEstimateValue");
 const handoffSizeValue = document.querySelector("#handoffSizeValue");
 const checksumValue = document.querySelector("#checksumValue");
+const contextFitPanel = document.querySelector("#contextFitPanel");
+const contextFitBadge = document.querySelector("#contextFitBadge");
+const contextFitDetail = document.querySelector("#contextFitDetail");
+const contextFitRecommendation = document.querySelector(
+  "#contextFitRecommendation"
+);
 
 let lastCapture = null;
 let currentHandoffMode = "full";
@@ -87,6 +99,9 @@ function reset() {
   tokenEstimateValue.textContent = "—";
   handoffSizeValue.textContent = "—";
   checksumValue.textContent = "—";
+  contextFitPanel.hidden = true;
+  contextFitRecommendation.hidden = true;
+  contextFitRecommendation.textContent = "";
   providerBadge.textContent = formatProviderLabel(currentTabProvider);
   setButtonsEnabled(false);
   setStatus("Ready.");
@@ -264,6 +279,36 @@ async function syncDesktopHandoff(capture = lastCapture) {
   return result;
 }
 
+function renderContextFit(capture = lastCapture) {
+  const markdown = getActiveHandoffMarkdown();
+
+  if (!markdown) {
+    contextFitPanel.hidden = true;
+    return;
+  }
+
+  const assessment = assessContextFit({
+    handoffMarkdown: markdown,
+    provider: capture?.provider ?? currentTabProvider,
+    model: capture?.metadata?.model ?? null,
+    handoffMode: currentHandoffMode
+  });
+
+  contextFitPanel.hidden = false;
+  contextFitBadge.textContent = formatContextFitBadge(assessment);
+  contextFitBadge.className = `context-fit-badge ${assessment.level}`;
+  contextFitDetail.textContent = `${formatContextFitSummary(assessment)} · ${assessment.modelLabel}`;
+  tokenEstimateValue.textContent = formatTokenCount(assessment.estimatedTokens);
+
+  if (assessment.recommendation) {
+    contextFitRecommendation.hidden = false;
+    contextFitRecommendation.textContent = assessment.recommendation;
+  } else {
+    contextFitRecommendation.hidden = true;
+    contextFitRecommendation.textContent = "";
+  }
+}
+
 function renderCapture(capture) {
   currentHandoffMode = capture?.handoffMode ?? "full";
   handoffModeSelect.value = currentHandoffMode;
@@ -274,11 +319,9 @@ function renderCapture(capture) {
   updateProviderBadge(lastCapture);
   titleValue.textContent = lastCapture.title ?? "Untitled conversation";
   messageCountValue.textContent = String(lastCapture.messageCount ?? 0);
-  tokenEstimateValue.textContent = String(
-    lastCapture.metadata?.estimatedTokens ?? "—"
-  );
   handoffSizeValue.textContent = `${getActiveHandoffMarkdown().length} chars`;
   checksumValue.textContent = lastCapture.checksum ?? "—";
+  renderContextFit(lastCapture);
   metadata.hidden = false;
 
   setButtonsEnabled(true);
@@ -342,6 +385,7 @@ handoffModeSelect.addEventListener("change", async () => {
   lastCapture = updatedCapture;
   preview.value = getActiveHandoffMarkdown();
   handoffSizeValue.textContent = `${getActiveHandoffMarkdown().length} chars`;
+  renderContextFit(updatedCapture);
 
   try {
     await savePendingHandoff(updatedCapture);
