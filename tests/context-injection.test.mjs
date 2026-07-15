@@ -143,13 +143,16 @@ test("preserves Markdown line breaks in a contenteditable composer", () => {
   );
 });
 
-test("prefers execCommand for ProseMirror-style contenteditable composers", () => {
+test("inserts multiline content line-by-line for ProseMirror composers", () => {
   const composer = createComposer({
     tagName: "DIV",
-    contentEditable: true
+    contentEditable: true,
+    className: "ProseMirror"
   });
-  let execCommandText = null;
+  const execCommands = [];
 
+  composer.matches = (selector) =>
+    selector.includes("ProseMirror") && selector.includes("contenteditable");
   composer.ownerDocument = {
     createRange() {
       return {
@@ -157,9 +160,17 @@ test("prefers execCommand for ProseMirror-style contenteditable composers", () =
         collapse() {}
       };
     },
-    execCommand(_command, _showDefaultUI, text) {
-      execCommandText = text;
-      composer.textContent = text;
+    execCommand(command, _showDefaultUI, text) {
+      execCommands.push({ command, text: text ?? null });
+
+      if (command === "insertText" && text) {
+        composer.textContent += text;
+      }
+
+      if (command === "insertParagraph" || command === "insertLineBreak") {
+        composer.textContent += "\n";
+      }
+
       return true;
     }
   };
@@ -177,6 +188,25 @@ test("prefers execCommand for ProseMirror-style contenteditable composers", () =
           this.inputType = init?.inputType;
           this.data = init?.data;
         }
+      },
+      ClipboardEvent: class extends Event {
+        constructor(type, init) {
+          super(type, init);
+          this.clipboardData = init?.clipboardData ?? null;
+        }
+      },
+      DataTransfer: class {
+        constructor() {
+          this.data = new Map();
+        }
+
+        setData(type, value) {
+          this.data.set(type, value);
+        }
+
+        getData(type) {
+          return this.data.get(type) ?? "";
+        }
       }
     }
   };
@@ -188,8 +218,103 @@ test("prefers execCommand for ProseMirror-style contenteditable composers", () =
     context: "# Handoff\n\nContinue here."
   });
 
-  assert.equal(execCommandText, "# Handoff\n\nContinue here.");
+  assert.deepEqual(
+    execCommands.map(({ command, text }) => [command, text]),
+    [
+      ["insertText", "# Handoff"],
+      ["insertParagraph", null],
+      ["insertParagraph", null],
+      ["insertText", "Continue here."]
+    ]
+  );
   assert.equal(composer.textContent, "# Handoff\n\nContinue here.");
+});
+
+test("resolves nested ProseMirror inside a composer wrapper", () => {
+  const proseMirror = createComposer({
+    tagName: "DIV",
+    contentEditable: true,
+    className: "ProseMirror"
+  });
+  const wrapper = createComposer({
+    tagName: "DIV",
+    id: "prompt-textarea",
+    contentEditable: true
+  });
+  const execCommands = [];
+
+  proseMirror.matches = (selector) =>
+    selector.includes("ProseMirror") && selector.includes("contenteditable");
+  wrapper.querySelector = (selector) =>
+    selector.includes("ProseMirror") ? proseMirror : null;
+  proseMirror.ownerDocument = {
+    createRange() {
+      return {
+        selectNodeContents() {},
+        collapse() {}
+      };
+    },
+    execCommand(command, _showDefaultUI, text) {
+      execCommands.push({ command, text: text ?? null });
+
+      if (command === "insertText" && text) {
+        proseMirror.textContent += text;
+      }
+
+      if (command === "insertParagraph" || command === "insertLineBreak") {
+        proseMirror.textContent += "\n";
+      }
+
+      return true;
+    }
+  };
+
+  const root = {
+    querySelector: () => wrapper,
+    getSelection: () => ({
+      removeAllRanges() {},
+      addRange() {}
+    }),
+    defaultView: {
+      InputEvent: class extends Event {
+        constructor(type, init) {
+          super(type, init);
+          this.inputType = init?.inputType;
+          this.data = init?.data;
+        }
+      },
+      ClipboardEvent: class extends Event {
+        constructor(type, init) {
+          super(type, init);
+          this.clipboardData = init?.clipboardData ?? null;
+        }
+      },
+      DataTransfer: class {
+        constructor() {
+          this.data = new Map();
+        }
+
+        setData(type, value) {
+          this.data.set(type, value);
+        }
+
+        getData(type) {
+          return this.data.get(type) ?? "";
+        }
+      }
+    }
+  };
+
+  insertContextIntoComposer({
+    providerId: "chatgpt",
+    root,
+    selectors: ['#prompt-textarea[contenteditable="true"]'],
+    context: "Line one\nLine two"
+  });
+
+  assert.ok(execCommands.length > 0);
+  assert.equal(proseMirror.textContent, "Line one\nLine two");
+  assert.equal(wrapper.textContent, "");
 });
 
 test("rejects missing composers and empty context", () => {

@@ -111,29 +111,157 @@ function dispatchInputEvent(element, root, inputType, data) {
   );
 }
 
-function insertContentEditableValue(element, value, root) {
-  focusContentEditableEnd(element, root);
+function resolveEditableTarget(element) {
+  if (element.matches?.('.ProseMirror[contenteditable="true"]')) {
+    return element;
+  }
 
-  const execDocument =
+  const inner = element.querySelector?.(
+    '.ProseMirror[contenteditable="true"]'
+  );
+  return inner ?? element;
+}
+
+function execDocumentFor(element, root) {
+  return (
     element.ownerDocument ??
     root.defaultView?.document ??
     root.ownerDocument ??
-    null;
+    null
+  );
+}
 
-  if (typeof execDocument?.execCommand === "function") {
-    try {
-      if (execDocument.execCommand("insertText", false, value)) {
-        dispatchInputEvent(element, root, "insertText", value);
-        return;
+function verifyMultilineInsert(element, value) {
+  if (!value.includes("\n")) {
+    return readComposerValue(element).trim().length > 0;
+  }
+
+  const read = readComposerValue(element);
+  if (read.includes("\n")) {
+    return true;
+  }
+
+  const blockCount =
+    element.querySelectorAll?.("p, br, div[data-placeholder]")?.length ?? 0;
+  return blockCount > 0 || element.childElementCount > 1;
+}
+
+function trySyntheticPaste(element, value, root) {
+  const view = root.defaultView ?? globalThis;
+  const ClipboardEventCtor = view.ClipboardEvent;
+  const DataTransferCtor = view.DataTransfer;
+
+  if (
+    typeof ClipboardEventCtor !== "function" ||
+    typeof DataTransferCtor !== "function"
+  ) {
+    return false;
+  }
+
+  focusContentEditableEnd(element, root);
+
+  const dataTransfer = new DataTransferCtor();
+  dataTransfer.setData("text/plain", value);
+
+  const pasteEvent = new ClipboardEventCtor("paste", {
+    bubbles: true,
+    cancelable: true,
+    clipboardData: dataTransfer
+  });
+
+  element.dispatchEvent(pasteEvent);
+  return readComposerValue(element).trim().length > 0;
+}
+
+function tryLineByLineInsert(element, value, root) {
+  const execDocument = execDocumentFor(element, root);
+
+  if (typeof execDocument?.execCommand !== "function") {
+    return false;
+  }
+
+  focusContentEditableEnd(element, root);
+  const lines = value.split("\n");
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+
+    if (line.length > 0) {
+      try {
+        if (!execDocument.execCommand("insertText", false, line)) {
+          return false;
+        }
+      } catch {
+        return false;
       }
-    } catch {
-      // Fall back to DOM insertion below.
+    }
+
+    if (index < lines.length - 1) {
+      try {
+        const broke =
+          execDocument.execCommand("insertParagraph", false) ||
+          execDocument.execCommand("insertLineBreak", false);
+        if (!broke) {
+          return false;
+        }
+      } catch {
+        return false;
+      }
     }
   }
 
-  setContentEditableValue(element, value, root);
-  dispatchComposerEvent(element, "input", root);
-  dispatchComposerEvent(element, "change", root);
+  dispatchInputEvent(element, root, "insertFromPaste", value);
+  return true;
+}
+
+function trySingleLineInsert(element, value, root) {
+  const execDocument = execDocumentFor(element, root);
+
+  if (typeof execDocument?.execCommand !== "function") {
+    return false;
+  }
+
+  focusContentEditableEnd(element, root);
+
+  try {
+    if (!execDocument.execCommand("insertText", false, value)) {
+      return false;
+    }
+  } catch {
+    return false;
+  }
+
+  dispatchInputEvent(element, root, "insertText", value);
+  return true;
+}
+
+function insertContentEditableValue(element, value, root) {
+  const target = resolveEditableTarget(element);
+  const isMultiline = value.includes("\n");
+
+  if (!isMultiline && trySingleLineInsert(target, value, root)) {
+    return;
+  }
+
+  if (
+    isMultiline &&
+    trySyntheticPaste(target, value, root) &&
+    verifyMultilineInsert(target, value)
+  ) {
+    return;
+  }
+
+  if (
+    isMultiline &&
+    tryLineByLineInsert(target, value, root) &&
+    verifyMultilineInsert(target, value)
+  ) {
+    return;
+  }
+
+  setContentEditableValue(target, value, root);
+  dispatchComposerEvent(target, "input", root);
+  dispatchComposerEvent(target, "change", root);
 }
 
 function readComposerValue(element) {
