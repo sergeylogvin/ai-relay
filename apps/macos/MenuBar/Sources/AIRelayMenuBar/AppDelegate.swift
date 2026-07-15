@@ -8,12 +8,17 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
     private let pasteButton = NSButton(title: "Paste into front app", target: nil, action: nil)
     private let refreshButton = NSButton(title: "Refresh", target: nil, action: nil)
     private let clearButton = NSButton(title: "Clear inbox", target: nil, action: nil)
+    private let launchAtLoginCheckbox = NSButton(
+        checkboxWithTitle: "Launch at login",
+        target: nil,
+        action: nil
+    )
 
     init(store: HandoffStore) {
         self.store = store
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 280),
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 310),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -44,6 +49,7 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
         copyButton.isEnabled = hasHandoff
         pasteButton.isEnabled = hasHandoff
         clearButton.isEnabled = hasHandoff
+        launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled() ? .on : .off
     }
 
     func showPanel() {
@@ -107,6 +113,21 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
         refresh()
     }
 
+    @objc private func toggleLaunchAtLogin() {
+        let shouldEnable = launchAtLoginCheckbox.state == .on
+
+        do {
+            try LaunchAtLoginController.setEnabled(shouldEnable)
+            statusField.stringValue = shouldEnable
+                ? "AI Relay will start quietly at login."
+                : "Launch at login disabled."
+        } catch {
+            launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled() ? .on : .off
+            statusField.stringValue =
+                "Could not update login item. Copy AI Relay to /Applications, then try again."
+        }
+    }
+
     private func showAccessibilityAlert() {
         let alert = NSAlert()
         alert.messageText = "Accessibility permission required"
@@ -149,6 +170,9 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
         clearButton.action = #selector(clearInbox)
         clearButton.bezelStyle = .rounded
 
+        launchAtLoginCheckbox.target = self
+        launchAtLoginCheckbox.action = #selector(toggleLaunchAtLogin)
+
         let actionRow = NSStackView(views: [copyButton, pasteButton])
         actionRow.orientation = .horizontal
         actionRow.spacing = 8
@@ -159,7 +183,13 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
         utilityRow.spacing = 8
         utilityRow.distribution = .fillEqually
 
-        let stack = NSStackView(views: [titleField, statusField, actionRow, utilityRow])
+        let stack = NSStackView(views: [
+            titleField,
+            statusField,
+            actionRow,
+            utilityRow,
+            launchAtLoginCheckbox
+        ])
         stack.orientation = .vertical
         stack.alignment = .leading
         stack.spacing = 12
@@ -188,7 +218,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         InboxBridgeLauncher.ensureRunning()
 
         panelController = HandoffPanelController(store: store)
-        panelController?.showPanel()
+
+        if LaunchAtLoginController.shouldPresentWindowOnLaunch() {
+            panelController?.showPanel()
+        }
 
         pollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
             self?.panelController?.refresh()
