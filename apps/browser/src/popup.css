@@ -114,6 +114,52 @@ button:disabled {
   font-size: 11px;
 }
 
+.context-fit {
+  display: grid;
+  gap: 6px;
+  padding: 10px;
+  border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
+  border-radius: 8px;
+}
+
+.context-fit-badge {
+  width: fit-content;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 650;
+}
+
+.context-fit-badge.ok {
+  background: color-mix(in srgb, #1f8f4a 18%, transparent);
+  color: color-mix(in srgb, #1f8f4a 88%, CanvasText 12%);
+}
+
+.context-fit-badge.caution {
+  background: color-mix(in srgb, #b07d00 18%, transparent);
+  color: color-mix(in srgb, #b07d00 88%, CanvasText 12%);
+}
+
+.context-fit-badge.warning,
+.context-fit-badge.over {
+  background: color-mix(in srgb, #c0392b 18%, transparent);
+  color: color-mix(in srgb, #c0392b 88%, CanvasText 12%);
+}
+
+.context-fit-detail,
+.context-fit-recommendation {
+  margin: 0;
+  font-size: 12px;
+}
+
+.context-fit-detail {
+  opacity: 0.8;
+}
+
+.context-fit-recommendation {
+  opacity: 0.92;
+}
+
 label {
   font-size: 13px;
   font-weight: 650;
