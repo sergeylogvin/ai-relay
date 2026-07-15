@@ -131,19 +131,72 @@ function execDocumentFor(element, root) {
   );
 }
 
+function escapeHtml(text) {
+  return String(text)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+function buildPasteHtml(value) {
+  return value
+    .split("\n")
+    .map((line) => `<p>${line ? escapeHtml(line) : "<br>"}</p>`)
+    .join("");
+}
+
+function countNewlines(text) {
+  return (String(text).match(/\n/g) ?? []).length;
+}
+
 function verifyMultilineInsert(element, value) {
-  if (!value.includes("\n")) {
-    return readComposerValue(element).trim().length > 0;
+  const read = readComposerValue(element);
+
+  if (read.trim().length === 0) {
+    return false;
   }
 
-  const read = readComposerValue(element);
-  if (read.includes("\n")) {
+  if (!value.includes("\n")) {
     return true;
   }
 
-  const blockCount =
-    element.querySelectorAll?.("p, br, div[data-placeholder]")?.length ?? 0;
-  return blockCount > 0 || element.childElementCount > 1;
+  if (countNewlines(read) >= 1) {
+    return true;
+  }
+
+  const paragraphs = element.querySelectorAll?.("p")?.length ?? 0;
+  const breaks = element.querySelectorAll?.("br")?.length ?? 0;
+
+  if (paragraphs >= 2) {
+    return true;
+  }
+
+  if (breaks >= 1 && value.split("\n").length >= 2) {
+    return true;
+  }
+
+  return false;
+}
+
+function tryBeforeInputPaste(element, value, root) {
+  const InputEventCtor = root.defaultView?.InputEvent;
+
+  if (typeof InputEventCtor !== "function") {
+    return false;
+  }
+
+  focusContentEditableEnd(element, root);
+
+  element.dispatchEvent(
+    new InputEventCtor("beforeinput", {
+      bubbles: true,
+      cancelable: true,
+      inputType: "insertFromPaste",
+      data: value
+    })
+  );
+
+  return verifyMultilineInsert(element, value);
 }
 
 function trySyntheticPaste(element, value, root) {
@@ -162,6 +215,7 @@ function trySyntheticPaste(element, value, root) {
 
   const dataTransfer = new DataTransferCtor();
   dataTransfer.setData("text/plain", value);
+  dataTransfer.setData("text/html", buildPasteHtml(value));
 
   const pasteEvent = new ClipboardEventCtor("paste", {
     bubbles: true,
@@ -170,7 +224,136 @@ function trySyntheticPaste(element, value, root) {
   });
 
   element.dispatchEvent(pasteEvent);
-  return readComposerValue(element).trim().length > 0;
+  return verifyMultilineInsert(element, value);
+}
+
+function tryInsertHtml(element, value, root) {
+  const execDocument = execDocumentFor(element, root);
+
+  if (typeof execDocument?.execCommand !== "function") {
+    return false;
+  }
+
+  focusContentEditableEnd(element, root);
+
+  try {
+    if (
+      execDocument.execCommand("insertHTML", false, buildPasteHtml(value)) &&
+      verifyMultilineInsert(element, value)
+    ) {
+      dispatchInputEvent(element, root, "insertFromPaste", value);
+      return true;
+    }
+  } catch {
+    // Fall through to other strategies.
+  }
+
+  return false;
+}
+
+function tryDomParagraphInsert(element, value, root) {
+  const document =
+    element.ownerDocument ?? root.defaultView?.document ?? root;
+
+  if (typeof document.createElement !== "function") {
+    return false;
+  }
+
+  if (typeof element.appendChild !== "function") {
+    return false;
+  }
+
+  focusContentEditableEnd(element, root);
+
+  if (typeof element.replaceChildren === "function") {
+    element.replaceChildren();
+  } else {
+    element.textContent = "";
+  }
+
+  for (const line of value.split("\n")) {
+    const paragraph = document.createElement("p");
+    if (line) {
+      paragraph.textContent = line;
+    }
+    element.appendChild(paragraph);
+  }
+
+  dispatchInputEvent(element, root, "insertFromPaste", value);
+  return verifyMultilineInsert(element, value);
+}
+
+function dispatchEnter(element, root) {
+  const KeyboardEventCtor = root.defaultView?.KeyboardEvent;
+
+  if (typeof KeyboardEventCtor !== "function") {
+    return false;
+  }
+
+  const init = {
+    bubbles: true,
+    cancelable: true,
+    key: "Enter",
+    code: "Enter",
+    keyCode: 13,
+    which: 13
+  };
+
+  for (const type of ["keydown", "keypress", "keyup"]) {
+    const event = new KeyboardEventCtor(type, init);
+    element.dispatchEvent(event);
+
+    if (type === "keydown" && event.defaultPrevented) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function tryKeyboardLineByLineInsert(element, value, root) {
+  const execDocument = execDocumentFor(element, root);
+
+  if (typeof execDocument?.execCommand !== "function") {
+    return false;
+  }
+
+  focusContentEditableEnd(element, root);
+  const lines = value.split("\n");
+
+  for (let index = 0; index < lines.length; index += 1) {
+    const line = lines[index];
+
+    if (line.length > 0) {
+      try {
+        if (!execDocument.execCommand("insertText", false, line)) {
+          return false;
+        }
+      } catch {
+        return false;
+      }
+    }
+
+    if (index < lines.length - 1) {
+      if (dispatchEnter(element, root)) {
+        continue;
+      }
+
+      try {
+        const broke =
+          execDocument.execCommand("insertParagraph", false) ||
+          execDocument.execCommand("insertLineBreak", false);
+        if (!broke) {
+          return false;
+        }
+      } catch {
+        return false;
+      }
+    }
+  }
+
+  dispatchInputEvent(element, root, "insertFromPaste", value);
+  return verifyMultilineInsert(element, value);
 }
 
 function tryLineByLineInsert(element, value, root) {
@@ -211,7 +394,7 @@ function tryLineByLineInsert(element, value, root) {
   }
 
   dispatchInputEvent(element, root, "insertFromPaste", value);
-  return true;
+  return verifyMultilineInsert(element, value);
 }
 
 function trySingleLineInsert(element, value, root) {
@@ -243,19 +426,27 @@ function insertContentEditableValue(element, value, root) {
     return;
   }
 
-  if (
-    isMultiline &&
-    trySyntheticPaste(target, value, root) &&
-    verifyMultilineInsert(target, value)
-  ) {
+  if (isMultiline && tryBeforeInputPaste(target, value, root)) {
     return;
   }
 
-  if (
-    isMultiline &&
-    tryLineByLineInsert(target, value, root) &&
-    verifyMultilineInsert(target, value)
-  ) {
+  if (isMultiline && trySyntheticPaste(target, value, root)) {
+    return;
+  }
+
+  if (isMultiline && tryInsertHtml(target, value, root)) {
+    return;
+  }
+
+  if (isMultiline && tryDomParagraphInsert(target, value, root)) {
+    return;
+  }
+
+  if (isMultiline && tryKeyboardLineByLineInsert(target, value, root)) {
+    return;
+  }
+
+  if (isMultiline && tryLineByLineInsert(target, value, root)) {
     return;
   }
 

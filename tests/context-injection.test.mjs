@@ -143,7 +143,92 @@ test("preserves Markdown line breaks in a contenteditable composer", () => {
   );
 });
 
-test("inserts multiline content line-by-line for ProseMirror composers", () => {
+test("inserts multiline content as paragraph blocks for ProseMirror composers", () => {
+  const composer = createComposer({
+    tagName: "DIV",
+    contentEditable: true,
+    className: "ProseMirror"
+  });
+  const paragraphs = [];
+
+  composer.matches = (selector) =>
+    selector.includes("ProseMirror") && selector.includes("contenteditable");
+  composer.replaceChildren = () => {
+    paragraphs.length = 0;
+  };
+  composer.appendChild = (node) => {
+    paragraphs.push(node);
+  };
+  composer.querySelectorAll = (selector) => {
+    if (selector === "p") return paragraphs;
+    if (selector === "br") return [];
+    return [];
+  };
+  composer.ownerDocument = {
+    createRange() {
+      return {
+        selectNodeContents() {},
+        collapse() {}
+      };
+    },
+    createElement(tagName) {
+      return {
+        tagName: tagName.toUpperCase(),
+        textContent: ""
+      };
+    }
+  };
+
+  const root = {
+    querySelector: () => composer,
+    getSelection: () => ({
+      removeAllRanges() {},
+      addRange() {}
+    }),
+    defaultView: {
+      InputEvent: class extends Event {
+        constructor(type, init) {
+          super(type, init);
+          this.inputType = init?.inputType;
+          this.data = init?.data;
+        }
+      },
+      ClipboardEvent: class extends Event {
+        constructor(type, init) {
+          super(type, init);
+          this.clipboardData = init?.clipboardData ?? null;
+        }
+      },
+      DataTransfer: class {
+        constructor() {
+          this.data = new Map();
+        }
+
+        setData(type, value) {
+          this.data.set(type, value);
+        }
+
+        getData(type) {
+          return this.data.get(type) ?? "";
+        }
+      }
+    }
+  };
+
+  insertContextIntoComposer({
+    providerId: "chatgpt",
+    root,
+    selectors: ['[contenteditable="true"]'],
+    context: "# Handoff\n\nContinue here."
+  });
+
+  assert.equal(paragraphs.length, 3);
+  assert.equal(paragraphs[0].textContent, "# Handoff");
+  assert.equal(paragraphs[1].textContent, "");
+  assert.equal(paragraphs[2].textContent, "Continue here.");
+});
+
+test("inserts multiline content line-by-line when paragraph DOM insert is unavailable", () => {
   const composer = createComposer({
     tagName: "DIV",
     contentEditable: true,
@@ -162,6 +247,10 @@ test("inserts multiline content line-by-line for ProseMirror composers", () => {
     },
     execCommand(command, _showDefaultUI, text) {
       execCommands.push({ command, text: text ?? null });
+
+      if (command === "insertHTML") {
+        return false;
+      }
 
       if (command === "insertText" && text) {
         composer.textContent += text;
@@ -221,6 +310,7 @@ test("inserts multiline content line-by-line for ProseMirror composers", () => {
   assert.deepEqual(
     execCommands.map(({ command, text }) => [command, text]),
     [
+      ["insertHTML", "<p># Handoff</p><p><br></p><p>Continue here.</p>"],
       ["insertText", "# Handoff"],
       ["insertParagraph", null],
       ["insertParagraph", null],
@@ -256,6 +346,10 @@ test("resolves nested ProseMirror inside a composer wrapper", () => {
     },
     execCommand(command, _showDefaultUI, text) {
       execCommands.push({ command, text: text ?? null });
+
+      if (command === "insertHTML") {
+        return false;
+      }
 
       if (command === "insertText" && text) {
         proseMirror.textContent += text;
