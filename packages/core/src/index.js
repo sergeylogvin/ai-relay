@@ -32,3 +32,9 @@ export {
   normalizeUsageBucket,
   normalizeUsageSnapshot
 } from "./usage-snapshot.js";
+export {
+  extractOrganizationIdFromCookie,
+  fetchClaudeOrganizationId,
+  fetchClaudeUsageFromSession,
+  parseClaudeUsageResponse
+} from "./claude-usage.js";

@@ -4,7 +4,7 @@ import test from "node:test";
 import {
   extractOrganizationIdFromCookie,
   parseClaudeUsageResponse
-} from "../packages/providers/src/claude/usage.js";
+} from "../packages/core/src/claude-usage.js";
 import {
   formatUsagePercent,
   normalizeUsageSnapshot

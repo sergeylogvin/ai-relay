@@ -491,6 +491,10 @@ async function initialize() {
   }
 
   await initializeUsagePanel();
+
+  if (currentTabProvider === "claude") {
+    refreshUsagePanel().catch(() => {});
+  }
 }
 
 captureButton.addEventListener("click", async () => {
