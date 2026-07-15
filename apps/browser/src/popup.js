@@ -20,6 +20,7 @@ import {
   formatContextFitSummary,
   formatTokenCount
 } from "./core/limit-awareness.js";
+import { formatLimitSignalLabel } from "./providers/limits.js";
 
 const captureButton = document.querySelector("#captureButton");
 const copyMarkdownButton = document.querySelector("#copyMarkdownButton");
@@ -52,6 +53,7 @@ const contextFitDetail = document.querySelector("#contextFitDetail");
 const contextFitRecommendation = document.querySelector(
   "#contextFitRecommendation"
 );
+const providerLimitNotice = document.querySelector("#providerLimitNotice");
 
 let lastCapture = null;
 let currentHandoffMode = "full";
@@ -102,6 +104,8 @@ function reset() {
   contextFitPanel.hidden = true;
   contextFitRecommendation.hidden = true;
   contextFitRecommendation.textContent = "";
+  providerLimitNotice.hidden = true;
+  providerLimitNotice.textContent = "";
   providerBadge.textContent = formatProviderLabel(currentTabProvider);
   setButtonsEnabled(false);
   setStatus("Ready.");
@@ -307,6 +311,22 @@ function renderContextFit(capture = lastCapture) {
     contextFitRecommendation.hidden = true;
     contextFitRecommendation.textContent = "";
   }
+
+  renderProviderLimitNotice(capture);
+}
+
+function renderProviderLimitNotice(capture = lastCapture) {
+  const limits = capture?.metadata?.providerLimits ?? [];
+  const primaryLimit = limits[0];
+
+  if (!primaryLimit) {
+    providerLimitNotice.hidden = true;
+    providerLimitNotice.textContent = "";
+    return;
+  }
+
+  providerLimitNotice.hidden = false;
+  providerLimitNotice.textContent = `${formatLimitSignalLabel(primaryLimit)}: ${primaryLimit.message}`;
 }
 
 function renderCapture(capture) {

@@ -136,7 +136,7 @@ test("ChatGPTAdapter reports safe context insertion support", () => {
     readConversation: true,
     insertContext: true,
     uploadFiles: false,
-    readLimits: false
+    readLimits: true
   });
 });
 

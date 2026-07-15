@@ -160,6 +160,15 @@ button:disabled {
   opacity: 0.92;
 }
 
+.provider-limit-notice {
+  margin: 0;
+  padding: 8px 10px;
+  border-radius: 8px;
+  font-size: 12px;
+  background: color-mix(in srgb, #c0392b 12%, transparent);
+  color: color-mix(in srgb, #c0392b 88%, CanvasText 12%);
+}
+
 label {
   font-size: 13px;
   font-weight: 650;

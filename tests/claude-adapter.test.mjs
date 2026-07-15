@@ -149,8 +149,25 @@ test("ClaudeAdapter reports safe context insertion support", () => {
     readConversation: true,
     insertContext: true,
     uploadFiles: false,
-    readLimits: false
+    readLimits: true
   });
+});
+
+test("ClaudeAdapter reads visible provider limit banners", () => {
+  const adapter = new ClaudeAdapter();
+  const banner = new FakeElement({
+    text: "You reached your daily message limit."
+  });
+  const root = new FakeElement({
+    selectors: {
+      '[data-testid*="limit-banner"]': banner
+    }
+  });
+
+  const limits = adapter.readLimits(root);
+
+  assert.equal(limits.length, 1);
+  assert.match(limits[0].message, /message limit/i);
 });
 
 test("ClaudeAdapter reads messages in document order", () => {

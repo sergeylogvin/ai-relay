@@ -40,5 +40,10 @@ export const CLAUDE_SELECTORS = Object.freeze({
     'div[contenteditable="true"][data-placeholder]',
     'textarea[placeholder*="Claude" i]',
     "main textarea"
+  ]),
+  limitBanners: Object.freeze([
+    '[data-testid*="usage-banner"]',
+    '[data-testid*="limit-banner"]',
+    '[class*="usage-banner"]'
   ])
 });

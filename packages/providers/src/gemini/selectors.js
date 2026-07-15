@@ -33,5 +33,10 @@ export const GEMINI_SELECTORS = Object.freeze({
     '[data-test-id*="input"] [contenteditable="true"]',
     'div[contenteditable="true"][aria-label*="prompt" i]',
     "main textarea"
+  ]),
+  limitBanners: Object.freeze([
+    '[data-test-id*="usage-banner"]',
+    '[data-testid*="usage-banner"]',
+    '[class*="usage-banner"]'
   ])
 });

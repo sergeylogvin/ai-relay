@@ -20,6 +20,7 @@ test("popup exposes continue-in-provider controls", async () => {
   assert.match(html, /id="handoffSizeValue"/);
   assert.match(html, /id="contextFitPanel"/);
   assert.match(html, /id="contextFitBadge"/);
+  assert.match(html, /id="providerLimitNotice"/);
 });
 
 test("popup re-renders handoff modes from the stored capture envelope", async () => {
@@ -31,6 +32,7 @@ test("popup re-renders handoff modes from the stored capture envelope", async ()
   assert.match(source, /renderHandoffByMode/);
   assert.match(source, /applyHandoffMode/);
   assert.match(source, /renderContextFit/);
+  assert.match(source, /renderProviderLimitNotice/);
   assert.match(source, /assessContextFit/);
   assert.match(source, /handoffModeSelect/);
   assert.match(source, /capture\.json/);
