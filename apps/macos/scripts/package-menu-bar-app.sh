@@ -34,6 +34,8 @@ cat > "$APP_DIR/Contents/Info.plist" <<EOF
   <string>1</string>
   <key>LSMinimumSystemVersion</key>
   <string>13.0</string>
+  <key>NSAppleEventsUsageDescription</key>
+  <string>AI Relay pastes captured handoffs into the frontmost desktop app.</string>
 </dict>
 </plist>
 EOF
