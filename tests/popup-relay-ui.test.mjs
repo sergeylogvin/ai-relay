@@ -28,8 +28,8 @@ test("popup consumes export-engine files from capture response", async () => {
 
   assert.match(source, /files\?\.\["handoff\.md"\]/);
   assert.match(source, /files\?\.\["capture\.json"\]/);
-  assert.match(source, /capture\.checksum/);
-  assert.match(source, /capture\.messageCount/);
+  assert.match(source, /lastCapture\.checksum/);
+  assert.match(source, /lastCapture\.messageCount/);
 });
 
 test("popup persists a pending handoff between tabs", async () => {
@@ -38,7 +38,8 @@ test("popup persists a pending handoff between tabs", async () => {
     "utf8"
   );
 
-  assert.match(source, /savePendingHandoff\(response\.capture\)/);
+  assert.match(source, /persistCapture\(/);
+  assert.match(source, /savePendingHandoff\(/);
   assert.match(source, /loadPendingHandoff\(\)/);
   assert.match(source, /renderCapture\(pendingCapture\)/);
   assert.match(source, /clearPendingHandoff\(\)/);
