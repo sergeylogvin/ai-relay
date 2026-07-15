@@ -43,7 +43,13 @@ const server = http.createServer(async (request, response) => {
   }
 
   if (request.method === "GET" && request.url === "/health") {
-    sendJson(response, 200, { ok: true, service: "ai-relay-inbox" });
+    sendJson(response, 200, {
+      ok: true,
+      service: "ai-relay-inbox",
+      features: {
+        pasteRequests: true
+      }
+    });
     return;
   }
 

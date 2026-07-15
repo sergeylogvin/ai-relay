@@ -81,6 +81,17 @@ test("macOS native host install script and host entrypoint exist", async () => {
   assert.match(readme, /com\.anthropic\.claudefordesktop/);
 });
 
+test("macOS package bundles inbox bridge paste-request modules", async () => {
+  const packageScript = await readFile(
+    resolve(root, "apps/macos/scripts/package-menu-bar-app.sh"),
+    "utf8"
+  );
+
+  assert.match(packageScript, /handoff-persistence\.mjs/);
+  assert.match(packageScript, /paste-request\.mjs/);
+  assert.match(packageScript, /pasteRequests/);
+});
+
 test("macOS paste monitor detects ChatGPT and Claude desktop apps", async () => {
   const monitor = await readFile(
     resolve(root, "apps/macos/MenuBar/Sources/AIRelayMenuBar/PasteRequestMonitor.swift"),
@@ -89,6 +100,9 @@ test("macOS paste monitor detects ChatGPT and Claude desktop apps", async () => 
 
   assert.match(monitor, /isDesktopHandoffApp/);
   assert.match(monitor, /isClaudeDesktopApp/);
+  assert.match(monitor, /claude\.usagebar/);
+  assert.match(monitor, /cowork/);
   assert.match(monitor, /anthropic\.claude/);
+  assert.match(monitor, /openai\.codex/);
   assert.match(monitor, /openai\.chat/);
 });

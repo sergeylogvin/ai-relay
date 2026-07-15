@@ -248,6 +248,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let hotkeyController = GlobalPasteHotkeyController()
     private var panelController: HandoffPanelController?
     private var pollTimer: Timer?
+    private var bridgeTimer: Timer?
     private var workspaceObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
@@ -290,6 +291,10 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 self?.handlePendingPasteRequest(for: frontApp)
             }
         }
+
+        bridgeTimer = Timer.scheduledTimer(withTimeInterval: 15.0, repeats: true) { _ in
+            InboxBridgeLauncher.ensureRunning()
+        }
     }
 
     private func handlePendingPasteRequest(for app: NSRunningApplication) {
@@ -307,11 +312,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        let result = HandoffPasteService.pasteFromHotkey(store: store)
-        pasteRequestMonitor.markHandled(request)
+        let storedAt = request.storedAt
 
-        if result == .pasted {
-            panelController?.refresh()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            guard let self else {
+                return
+            }
+
+            guard
+                let pending = self.pasteRequestMonitor.pendingRequest(),
+                pending.storedAt == storedAt
+            else {
+                return
+            }
+
+            let result = HandoffPasteService.pasteFromHotkey(store: self.store)
+
+            switch result {
+            case .pasted:
+                self.pasteRequestMonitor.markHandled(pending)
+                self.panelController?.refresh()
+            case .accessibilityRequired:
+                self.panelController?.showAccessibilityAlert()
+            case .noHandoff, .eventFailed:
+                break
+            }
         }
     }
 
@@ -322,6 +347,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         pollTimer?.invalidate()
+        bridgeTimer?.invalidate()
 
         if let workspaceObserver {
             NSWorkspace.shared.notificationCenter.removeObserver(workspaceObserver)

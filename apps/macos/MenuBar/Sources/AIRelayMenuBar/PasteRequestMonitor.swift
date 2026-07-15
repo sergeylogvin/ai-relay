@@ -95,12 +95,15 @@ final class PasteRequestMonitor {
     private func isChatGPTDesktopApp(bundleId: String, name: String) -> Bool {
         return bundleId.contains("chatgpt")
             || bundleId.contains("openai.chat")
+            || bundleId.contains("openai.codex")
             || name.contains("chatgpt")
     }
 
     private func isClaudeDesktopApp(bundleId: String, name: String) -> Bool {
         return bundleId.contains("anthropic.claude")
+            || bundleId.contains("claude.usagebar")
             || name == "claude"
+            || name.contains("cowork")
     }
 
     private func isAIRelayApp(_ app: NSRunningApplication) -> Bool {
