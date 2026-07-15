@@ -95,6 +95,7 @@ final class PasteRequestMonitor {
     private func isChatGPTDesktopApp(bundleId: String, name: String) -> Bool {
         return bundleId.contains("chatgpt")
             || bundleId.contains("openai.chat")
+            || bundleId.contains("openai.codex")
             || name.contains("chatgpt")
     }
 

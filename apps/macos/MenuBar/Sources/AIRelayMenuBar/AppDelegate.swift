@@ -307,11 +307,31 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             return
         }
 
-        let result = HandoffPasteService.pasteFromHotkey(store: store)
-        pasteRequestMonitor.markHandled(request)
+        let storedAt = request.storedAt
 
-        if result == .pasted {
-            panelController?.refresh()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) { [weak self] in
+            guard let self else {
+                return
+            }
+
+            guard
+                let pending = self.pasteRequestMonitor.pendingRequest(),
+                pending.storedAt == storedAt
+            else {
+                return
+            }
+
+            let result = HandoffPasteService.pasteFromHotkey(store: self.store)
+
+            switch result {
+            case .pasted:
+                self.pasteRequestMonitor.markHandled(pending)
+                self.panelController?.refresh()
+            case .accessibilityRequired:
+                self.panelController?.showAccessibilityAlert()
+            case .noHandoff, .eventFailed:
+                break
+            }
         }
     }
 

@@ -93,7 +93,7 @@ Manual fallback: **Cmd+Shift+V** or **Cmd+V**.
 
 Detected desktop targets:
 
-- ChatGPT desktop (`com.openai.chat`, app name contains "ChatGPT")
+- ChatGPT desktop (`com.openai.codex`, `com.openai.chat`, app name contains "ChatGPT")
 - Claude Desktop / Cowork (`com.anthropic.claudefordesktop`, `com.claude.usagebar`, app name "Claude" or "Cowork")
 
 ## Next steps

@@ -136,6 +136,10 @@ test("inbox HTTP bridge stores handoff records", async () => {
     assert.equal(body.ok, true);
     assert.equal(body.title, "Найкращий короп в Україні");
 
+    const health = await fetch("http://127.0.0.1:17832/health");
+    const healthBody = await health.json();
+    assert.equal(healthBody.features?.pasteRequests, true);
+
     const loaded = await readHandoffInbox(
       join(directory, "Library/Application Support/AI Relay/pending-handoff.json")
     );

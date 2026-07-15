@@ -92,5 +92,6 @@ test("macOS paste monitor detects ChatGPT and Claude desktop apps", async () => 
   assert.match(monitor, /claude\.usagebar/);
   assert.match(monitor, /cowork/);
   assert.match(monitor, /anthropic\.claude/);
+  assert.match(monitor, /openai\.codex/);
   assert.match(monitor, /openai\.chat/);
 });
