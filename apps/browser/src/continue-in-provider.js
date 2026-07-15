@@ -6,13 +6,19 @@ const PROVIDER_LABELS = Object.freeze({
   gemini: "Gemini"
 });
 
+const PROVIDER_WARMUP_MS = Object.freeze({
+  chatgpt: 2500,
+  claude: 1200,
+  gemini: 1800
+});
+
 function sleep(ms) {
   return new Promise((resolve) => {
     setTimeout(resolve, ms);
   });
 }
 
-function waitForTabComplete(tabId, timeoutMs = 20000) {
+function waitForTabComplete(tabId, timeoutMs = 30000) {
   return new Promise((resolve, reject) => {
     const timeout = setTimeout(() => {
       chrome.tabs.onUpdated.removeListener(onUpdated);
@@ -31,7 +37,7 @@ function waitForTabComplete(tabId, timeoutMs = 20000) {
   });
 }
 
-async function insertContextWithRetry(tabId, context, attempts = 6) {
+async function insertContextWithRetry(tabId, context, attempts = 12) {
   let lastError = new Error("Context insertion failed.");
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
@@ -53,7 +59,7 @@ async function insertContextWithRetry(tabId, context, attempts = 6) {
           : new Error("Context insertion failed.");
     }
 
-    await sleep(400 * (attempt + 1));
+    await sleep(500 * (attempt + 1));
   }
 
   throw lastError;
@@ -88,7 +94,7 @@ export async function continueInProvider({
 
   const tab = await chrome.tabs.create({ url, active: true });
   await waitForTabComplete(tab.id);
-  await sleep(800);
+  await sleep(PROVIDER_WARMUP_MS[targetProvider] ?? 1500);
 
   const insertion = await insertContextWithRetry(tab.id, context);
 
