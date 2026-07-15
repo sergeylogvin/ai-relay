@@ -87,10 +87,10 @@ Manual fallback:
 
 ### Manual desktop copy
 
-**Copy for Desktop** still works from the popup. It stores the handoff in the inbox and copies it to the clipboard.
+**Copy for Desktop** stores the handoff, copies it to the clipboard, and auto-pastes when you switch to ChatGPT desktop or Cowork.
 
-If the native host is not installed, the extension falls back to the normal browser clipboard.
+Manual fallback: **Cmd+Shift+V** or **Cmd+V**.
 
 ## Next steps
 
-- Auto-paste for **Copy for Desktop** into ChatGPT Cowork
+- Detect Claude Cowork desktop app for auto-paste

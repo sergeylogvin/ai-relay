@@ -559,20 +559,32 @@ copyForDesktopButton.addEventListener("click", async () => {
   copyForDesktopButton.disabled = true;
 
   try {
-    const result = await copyHandoffForDesktop(
-      markdown,
-      buildDesktopHandoffMetadata()
-    );
+    const metadata = {
+      ...buildDesktopHandoffMetadata(),
+      targetApp: "chatgpt",
+      pasteRequested: true
+    };
 
-    if (result.fallback === "clipboard") {
+    await navigator.clipboard.writeText(markdown);
+
+    const result = await storeHandoffForDesktop(markdown, metadata);
+
+    if (result?.ok) {
       setStatus(
-        "Desktop helper not installed. Copied handoff to clipboard instead."
+        "Handoff ready. Switch to ChatGPT or Cowork and it will paste automatically."
+      );
+      return;
+    }
+
+    if (result?.fallback === "desktop-bridge-unavailable") {
+      setStatus(
+        "Copied to clipboard. Paste manually with Cmd+V, or run npm run launch:macos-menu-bar."
       );
       return;
     }
 
     setStatus(
-      `Copied ${result.characters ?? markdown.length} character(s) for desktop paste. Switch apps and press Cmd+V.`
+      "Copied to clipboard. Paste manually in ChatGPT desktop with Cmd+V."
     );
   } catch (error) {
     setStatus(

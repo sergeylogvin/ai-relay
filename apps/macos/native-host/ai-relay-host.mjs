@@ -1,10 +1,9 @@
 #!/usr/bin/env node
 
 import {
-  normalizeHandoffInboxRecord,
-  resolveHandoffInboxPath,
-  writeHandoffInbox
+  resolveHandoffInboxPath
 } from "../shared/handoff-inbox.mjs";
+import { persistHandoffWithOptionalPasteRequest } from "../shared/handoff-persistence.mjs";
 
 const HOST_NAME = "com.ai_relay.native_host";
 
@@ -80,7 +79,7 @@ async function persistHandoff(message) {
     throw new TypeError("Handoff markdown is required.");
   }
 
-  const record = await writeHandoffInbox(
+  const record = await persistHandoffWithOptionalPasteRequest(
     {
       markdown,
       metadata: message.metadata ?? {}

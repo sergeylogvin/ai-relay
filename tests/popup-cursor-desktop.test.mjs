@@ -26,12 +26,10 @@ test("popup exposes Cursor and desktop copy actions", async () => {
   assert.match(popup, /copyHandoffForDesktop/);
   assert.match(popup, /storeHandoffForDesktop/);
   assert.match(popup, /targetApp: "cursor"/);
+  assert.match(popup, /targetApp: "chatgpt"/);
   assert.match(popup, /pasteRequested: true/);
-  assert.match(popup, /formatDesktopSyncStatus/);
-  assert.match(popup, /Syncing to desktop app/);
-  assert.match(popup, /Synced "/);
-  assert.match(popup, /Click Capture to sync it to the desktop app/);
   assert.match(popup, /Switch to Cursor chat and it will paste automatically/);
+  assert.match(popup, /Switch to ChatGPT or Cowork and it will paste automatically/);
   assert.match(manifest, /nativeMessaging/);
   assert.match(manifest, /127\.0\.0\.1:17831/);
 });
@@ -78,4 +76,6 @@ test("macOS native host install script and host entrypoint exist", async () => {
   assert.match(host, /STORE_HANDOFF/);
   assert.match(inbox, /pending-handoff\.json/);
   assert.match(host, /pbcopy/);
+  assert.match(host, /persistHandoffWithOptionalPasteRequest/);
+  assert.match(readme, /auto-pastes when you switch to ChatGPT desktop or Cowork/);
 });
