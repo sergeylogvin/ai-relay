@@ -35,10 +35,25 @@
             <dd id="messageCountValue">0</dd>
           </div>
           <div>
+            <dt>Est. tokens</dt>
+            <dd id="tokenEstimateValue">—</dd>
+          </div>
+          <div>
+            <dt>Handoff</dt>
+            <dd id="handoffSizeValue">—</dd>
+          </div>
+          <div>
             <dt>Checksum</dt>
             <dd id="checksumValue" class="checksum">—</dd>
           </div>
         </dl>
+
+        <label for="handoffMode">Handoff mode</label>
+        <select id="handoffMode" disabled>
+          <option value="full">Full transcript</option>
+          <option value="recent">Recent messages</option>
+          <option value="context-pack">Context pack</option>
+        </select>
 
         <label for="preview">Handoff preview</label>
         <textarea
@@ -51,6 +66,37 @@
         <button id="insertContextButton" class="primary" type="button" disabled>
           Insert handoff into current chat
         </button>
+
+        <section class="continue-panel" aria-labelledby="continueHeading">
+          <h2 id="continueHeading">Continue in another AI</h2>
+          <p>Open a provider, insert this handoff, and review before sending.</p>
+          <div class="continue-actions">
+            <button
+              id="continueChatgptButton"
+              type="button"
+              data-provider="chatgpt"
+              disabled
+            >
+              Continue in ChatGPT
+            </button>
+            <button
+              id="continueClaudeButton"
+              type="button"
+              data-provider="claude"
+              disabled
+            >
+              Continue in Claude
+            </button>
+            <button
+              id="continueGeminiButton"
+              type="button"
+              data-provider="gemini"
+              disabled
+            >
+              Continue in Gemini
+            </button>
+          </div>
+        </section>
 
         <div class="actions">
           <button id="copyMarkdownButton" type="button" disabled>

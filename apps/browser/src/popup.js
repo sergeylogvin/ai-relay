@@ -7,6 +7,12 @@ import {
   loadPendingHandoff,
   savePendingHandoff
 } from "./handoff-session-storage.js";
+import { renderHandoffByMode } from "./export/handoff-modes.js";
+import {
+  continueInProvider,
+  formatMigrationRoute,
+  formatProviderLabel
+} from "./continue-in-provider.js";
 
 const captureButton = document.querySelector("#captureButton");
 const copyMarkdownButton = document.querySelector("#copyMarkdownButton");
@@ -20,15 +26,21 @@ const downloadZipButton = document.querySelector("#downloadZipButton");
 const saveLibraryButton = document.querySelector("#saveLibraryButton");
 const openLibraryButton = document.querySelector("#openLibraryButton");
 const clearButton = document.querySelector("#clearButton");
+const handoffModeSelect = document.querySelector("#handoffMode");
+const continueButtons = document.querySelectorAll("[data-provider]");
 const preview = document.querySelector("#preview");
 const status = document.querySelector("#status");
 const providerBadge = document.querySelector("#providerBadge");
 const metadata = document.querySelector("#metadata");
 const titleValue = document.querySelector("#titleValue");
 const messageCountValue = document.querySelector("#messageCountValue");
+const tokenEstimateValue = document.querySelector("#tokenEstimateValue");
+const handoffSizeValue = document.querySelector("#handoffSizeValue");
 const checksumValue = document.querySelector("#checksumValue");
 
 let lastCapture = null;
+let currentHandoffMode = "full";
+let currentTabProvider = "unknown";
 
 async function getActiveTab() {
   const [tab] = await chrome.tabs.query({
@@ -52,15 +64,25 @@ function setButtonsEnabled(enabled) {
   downloadZipButton.disabled = !enabled;
   saveLibraryButton.disabled = !enabled;
   clearButton.disabled = !enabled;
+  handoffModeSelect.disabled = !enabled;
+
+  for (const button of continueButtons) {
+    button.disabled = !enabled;
+  }
 }
 
 function reset() {
   lastCapture = null;
+  currentHandoffMode = "full";
+  handoffModeSelect.value = "full";
   preview.value = "";
   metadata.hidden = true;
   titleValue.textContent = "—";
   messageCountValue.textContent = "0";
+  tokenEstimateValue.textContent = "—";
+  handoffSizeValue.textContent = "—";
   checksumValue.textContent = "—";
+  providerBadge.textContent = formatProviderLabel(currentTabProvider);
   setButtonsEnabled(false);
   setStatus("Ready.");
 }
@@ -106,31 +128,112 @@ function downloadText(filename, content, type) {
   URL.revokeObjectURL(url);
 }
 
-function renderCapture(capture) {
-  lastCapture = capture;
-  preview.value = capture.markdown ?? capture.files?.["handoff.md"] ?? "";
+function parseCaptureEnvelope(capture) {
+  const json = capture?.files?.["capture.json"];
 
-  providerBadge.textContent = capture.provider ?? "unknown";
-  titleValue.textContent = capture.title ?? "Untitled conversation";
-  messageCountValue.textContent = String(capture.messageCount ?? 0);
-  checksumValue.textContent = capture.checksum ?? "—";
+  if (!json) return null;
+
+  try {
+    return JSON.parse(json);
+  } catch {
+    return null;
+  }
+}
+
+function buildConversationFromCapture(capture) {
+  const envelope = parseCaptureEnvelope(capture);
+
+  return {
+    provider: capture?.provider ?? envelope?.source?.provider ?? "unknown",
+    title: capture?.title ?? envelope?.source?.title ?? "Untitled conversation",
+    url: capture?.url ?? envelope?.source?.url ?? null,
+    messages: envelope?.conversation?.messages ?? []
+  };
+}
+
+function renderHandoffMarkdownForMode(capture, mode = currentHandoffMode) {
+  const conversation = buildConversationFromCapture(capture);
+  const handoff = capture?.handoff ?? parseCaptureEnvelope(capture)?.handoff ?? null;
+
+  return renderHandoffByMode({
+    conversation,
+    handoff,
+    mode,
+    recentMessageLimit: 12
+  });
+}
+
+function applyHandoffMode(capture, mode = currentHandoffMode) {
+  const markdown = renderHandoffMarkdownForMode(capture, mode);
+  const nextCapture = {
+    ...capture,
+    markdown,
+    handoffMode: mode,
+    files: {
+      ...(capture.files ?? {}),
+      "handoff.md": `${markdown}\n`
+    }
+  };
+
+  return nextCapture;
+}
+
+function updateProviderBadge(capture, targetProvider = null) {
+  const sourceProvider = capture?.provider ?? currentTabProvider;
+
+  if (targetProvider) {
+    providerBadge.textContent = formatMigrationRoute(
+      sourceProvider,
+      targetProvider
+    );
+    return;
+  }
+
+  providerBadge.textContent = formatProviderLabel(sourceProvider);
+}
+
+function getActiveHandoffMarkdown() {
+  return lastCapture?.files?.["handoff.md"] ?? lastCapture?.markdown ?? "";
+}
+
+function renderCapture(capture) {
+  currentHandoffMode = capture?.handoffMode ?? "full";
+  handoffModeSelect.value = currentHandoffMode;
+
+  lastCapture = applyHandoffMode(capture, currentHandoffMode);
+  preview.value = getActiveHandoffMarkdown();
+
+  updateProviderBadge(lastCapture);
+  titleValue.textContent = lastCapture.title ?? "Untitled conversation";
+  messageCountValue.textContent = String(lastCapture.messageCount ?? 0);
+  tokenEstimateValue.textContent = String(
+    lastCapture.metadata?.estimatedTokens ?? "—"
+  );
+  handoffSizeValue.textContent = `${getActiveHandoffMarkdown().length} chars`;
+  checksumValue.textContent = lastCapture.checksum ?? "—";
   metadata.hidden = false;
 
   setButtonsEnabled(true);
   setStatus(
-    `Captured ${capture.messageCount ?? 0} message(s). Review before exporting.`
+    `Captured ${lastCapture.messageCount ?? 0} message(s). Review before exporting or continuing.`
   );
+}
+
+async function persistCapture(capture) {
+  await savePendingHandoff(capture);
+  renderCapture(capture);
 }
 
 async function initialize() {
   const tab = await getActiveTab();
-  providerBadge.textContent = detectProvider(tab?.url ?? "");
+  currentTabProvider = detectProvider(tab?.url ?? "");
+  providerBadge.textContent = formatProviderLabel(currentTabProvider);
 
   const pendingCapture = await loadPendingHandoff();
 
   if (pendingCapture) {
     renderCapture(pendingCapture);
-    setStatus("Restored the pending handoff. Ready to insert.");
+    setStatus("Restored the pending handoff. Ready to insert or continue.");
   }
 }
 
@@ -153,8 +256,10 @@ captureButton.addEventListener("click", async () => {
       throw new Error(response?.error ?? "Capture failed.");
     }
 
-    await savePendingHandoff(response.capture);
-    renderCapture(response.capture);
+    await persistCapture({
+      ...response.capture,
+      handoffMode: currentHandoffMode
+    });
   } catch (error) {
     setStatus(
       error instanceof Error
@@ -166,8 +271,30 @@ captureButton.addEventListener("click", async () => {
   }
 });
 
+handoffModeSelect.addEventListener("change", async () => {
+  if (!lastCapture) return;
+
+  currentHandoffMode = handoffModeSelect.value;
+  const updatedCapture = applyHandoffMode(lastCapture, currentHandoffMode);
+
+  lastCapture = updatedCapture;
+  preview.value = getActiveHandoffMarkdown();
+  handoffSizeValue.textContent = `${getActiveHandoffMarkdown().length} chars`;
+
+  try {
+    await savePendingHandoff(updatedCapture);
+    setStatus(`Updated handoff mode to ${handoffModeSelect.selectedOptions[0].textContent}.`);
+  } catch (error) {
+    setStatus(
+      error instanceof Error
+        ? error.message
+        : "Unable to update the pending handoff."
+    );
+  }
+});
+
 insertContextButton.addEventListener("click", async () => {
-  const context = lastCapture?.files?.["handoff.md"] ?? lastCapture?.markdown;
+  const context = getActiveHandoffMarkdown();
   if (!context) return;
 
   insertContextButton.disabled = true;
@@ -203,8 +330,50 @@ insertContextButton.addEventListener("click", async () => {
   }
 });
 
+for (const button of continueButtons) {
+  button.addEventListener("click", async () => {
+    const targetProvider = button.dataset.provider;
+    const context = getActiveHandoffMarkdown();
+
+    if (!context || !targetProvider || !lastCapture) return;
+
+    for (const continueButton of continueButtons) {
+      continueButton.disabled = true;
+    }
+
+    updateProviderBadge(lastCapture, targetProvider);
+    setStatus(
+      `Opening ${formatProviderLabel(targetProvider)} and inserting handoff…`
+    );
+
+    try {
+      await savePendingHandoff(lastCapture);
+
+      const result = await continueInProvider({
+        targetProvider,
+        handoffMarkdown: context
+      });
+
+      setStatus(
+        `Inserted ${result.insertion?.insertedCharacters ?? context.length} character(s) in ${formatProviderLabel(targetProvider)}. Review before sending.`
+      );
+    } catch (error) {
+      setStatus(
+        error instanceof Error
+          ? error.message
+          : "Unable to continue in the selected provider."
+      );
+      updateProviderBadge(lastCapture);
+    } finally {
+      for (const continueButton of continueButtons) {
+        continueButton.disabled = false;
+      }
+    }
+  });
+}
+
 copyMarkdownButton.addEventListener("click", async () => {
-  const markdown = lastCapture?.files?.["handoff.md"] ?? lastCapture?.markdown;
+  const markdown = getActiveHandoffMarkdown();
   if (!markdown) return;
 
   await navigator.clipboard.writeText(markdown);
@@ -220,7 +389,7 @@ copyJsonButton.addEventListener("click", async () => {
 });
 
 downloadMarkdownButton.addEventListener("click", () => {
-  const markdown = lastCapture?.files?.["handoff.md"];
+  const markdown = getActiveHandoffMarkdown();
   if (!markdown) return;
 
   const base = safeFilename(lastCapture?.title, "ai-relay-handoff");
@@ -241,7 +410,7 @@ downloadZipButton.addEventListener("click", () => {
   const files = lastCapture?.files;
   if (!files) return;
 
-  const metadata = JSON.stringify(
+  const metadataJson = JSON.stringify(
     {
       schemaVersion: lastCapture.schemaVersion,
       provider: lastCapture.provider,
@@ -249,6 +418,7 @@ downloadZipButton.addEventListener("click", () => {
       url: lastCapture.url,
       capturedAt: lastCapture.capturedAt,
       messageCount: lastCapture.messageCount,
+      handoffMode: currentHandoffMode,
       checksum: lastCapture.checksum
     },
     null,
@@ -257,7 +427,7 @@ downloadZipButton.addEventListener("click", () => {
 
   const archive = createZipArchive({
     ...files,
-    "metadata.json": `${metadata}
+    "metadata.json": `${metadataJson}
 `
   });
 
@@ -296,8 +466,7 @@ saveLibraryButton.addEventListener("click", async () => {
       updatedAt: new Date().toISOString(),
       messageCount: lastCapture.messageCount,
       checksum: lastCapture.checksum,
-      handoffMarkdown:
-        lastCapture.files?.["handoff.md"] ?? lastCapture.markdown,
+      handoffMarkdown: getActiveHandoffMarkdown(),
       captureJson: lastCapture.files?.["capture.json"],
       tags: []
     });

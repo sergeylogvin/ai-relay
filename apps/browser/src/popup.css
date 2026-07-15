@@ -138,6 +138,44 @@ textarea {
   flex: 1;
 }
 
+.continue-panel {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
+  border-radius: 8px;
+}
+
+.continue-panel h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.continue-panel p {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.continue-actions {
+  display: grid;
+  gap: 8px;
+}
+
+select {
+  width: 100%;
+  font: inherit;
+  border: 1px solid color-mix(in srgb, CanvasText 20%, transparent);
+  border-radius: 8px;
+  padding: 9px 10px;
+  background: color-mix(in srgb, Canvas 94%, CanvasText 6%);
+  color: CanvasText;
+}
+
+select:disabled {
+  opacity: 0.5;
+}
+
 footer {
   margin-top: 14px;
   font-size: 12px;
