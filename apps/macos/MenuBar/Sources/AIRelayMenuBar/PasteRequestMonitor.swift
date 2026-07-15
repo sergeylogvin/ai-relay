@@ -100,7 +100,9 @@ final class PasteRequestMonitor {
 
     private func isClaudeDesktopApp(bundleId: String, name: String) -> Bool {
         return bundleId.contains("anthropic.claude")
+            || bundleId.contains("claude.usagebar")
             || name == "claude"
+            || name.contains("cowork")
     }
 
     private func isAIRelayApp(_ app: NSRunningApplication) -> Bool {
