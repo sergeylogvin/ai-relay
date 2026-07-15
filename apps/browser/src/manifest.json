@@ -5,6 +5,7 @@
   "description": "Capture visible AI conversations and prepare a portable handoff.",
   "permissions": [
     "activeTab",
+    "nativeMessaging",
     "storage"
   ],
   "background": {
