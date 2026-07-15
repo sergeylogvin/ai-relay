@@ -45,6 +45,16 @@ open ~/Applications/AI\ Relay.app
 
 In the AI Relay window, enable **Launch at login**. After that, the companion and inbox bridge start quietly in the background when you sign in to macOS. Use the Dock icon when you want to paste a handoff.
 
+### Fast paste hotkey
+
+With **Enable paste hotkey (Cmd+Shift+V)** turned on:
+
+1. Capture in the browser.
+2. Focus the target app chat input.
+3. Press **Cmd+Shift+V**.
+
+No need to open the AI Relay window.
+
 When the app starts, it opens a small **AI Relay window** with the latest handoff. macOS may hide the top menu bar item on crowded MacBooks; the Dock icon remains the reliable entry point.
 
 The menu bar label shows the latest handoff title when macOS leaves room for it. When no handoff is stored yet, it shows `AI Relay`.
@@ -64,9 +74,9 @@ The app copies the handoff, hides itself, and sends `Cmd+V` to the front app. Th
 
 Manual fallback:
 
-1. Open the AI Relay window.
-2. Click **Copy handoff**.
-3. Switch to the target app and press `Cmd+V`.
+1. Focus the target app chat input.
+2. Press **Cmd+Shift+V** anywhere, or open AI Relay and click **Paste into front app**.
+3. If needed, click **Copy handoff** and paste manually with **Cmd+V**.
 
 ### Cursor workflow
 
@@ -80,4 +90,4 @@ If the native host is not installed, the extension falls back to the normal brow
 
 ## Next steps
 
-- Global hotkey for paste without opening the window
+- Paste Cursor context packs directly after **Copy for Cursor**
