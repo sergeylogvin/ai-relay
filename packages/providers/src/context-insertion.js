@@ -76,6 +76,66 @@ function setContentEditableValue(element, value, root) {
   element.replaceChildren(fragment);
 }
 
+function focusContentEditableEnd(element, root) {
+  element.focus?.();
+
+  const selection =
+    root.getSelection?.() ?? root.defaultView?.getSelection?.() ?? null;
+  const document = element.ownerDocument ?? root.defaultView?.document ?? root;
+  const createRange = document.createRange ?? root.createRange;
+
+  if (!selection || typeof createRange !== "function") return;
+
+  const range = createRange.call(document);
+  range.selectNodeContents(element);
+  range.collapse(false);
+  selection.removeAllRanges();
+  selection.addRange(range);
+}
+
+function dispatchInputEvent(element, root, inputType, data) {
+  const InputEventConstructor =
+    root.defaultView?.InputEvent ?? globalThis.InputEvent;
+
+  if (typeof InputEventConstructor !== "function") {
+    dispatchComposerEvent(element, "input", root);
+    return;
+  }
+
+  element.dispatchEvent(
+    new InputEventConstructor("input", {
+      bubbles: true,
+      inputType,
+      data
+    })
+  );
+}
+
+function insertContentEditableValue(element, value, root) {
+  focusContentEditableEnd(element, root);
+
+  const execDocument =
+    element.ownerDocument ??
+    root.defaultView?.document ??
+    root.ownerDocument ??
+    null;
+
+  if (typeof execDocument?.execCommand === "function") {
+    try {
+      if (execDocument.execCommand("insertText", false, value)) {
+        dispatchInputEvent(element, root, "insertText", value);
+        return;
+      }
+    } catch {
+      // Fall back to DOM insertion below.
+    }
+  }
+
+  setContentEditableValue(element, value, root);
+  dispatchComposerEvent(element, "input", root);
+  dispatchComposerEvent(element, "change", root);
+}
+
 function readComposerValue(element) {
   const tagName = String(element.tagName ?? "").toUpperCase();
 
@@ -113,14 +173,13 @@ export function insertContextIntoComposer({
 
   if (tagName === "TEXTAREA" || tagName === "INPUT") {
     setFormControlValue(composer, normalizedContext, root);
+    dispatchComposerEvent(composer, "input", root);
+    dispatchComposerEvent(composer, "change", root);
   } else if (isContentEditable(composer)) {
-    setContentEditableValue(composer, normalizedContext, root);
+    insertContentEditableValue(composer, normalizedContext, root);
   } else {
     throw new ContextComposerNotFoundError(providerId);
   }
-
-  dispatchComposerEvent(composer, "input", root);
-  dispatchComposerEvent(composer, "change", root);
 
   return Object.freeze({
     provider: providerId,
