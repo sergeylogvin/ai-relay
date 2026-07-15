@@ -21,6 +21,16 @@ import {
   formatTokenCount
 } from "./core/limit-awareness.js";
 import { formatLimitSignalLabel } from "./providers/limits.js";
+import { refreshClaudeUsage } from "./claude-usage-client.js";
+import {
+  formatUsagePercent,
+  formatUsageResetLabel
+} from "./core/usage-snapshot.js";
+import {
+  loadStoredUsageSnapshot,
+  mergeProviderUsage,
+  syncUsageSnapshotToDesktop
+} from "./usage-sync.js";
 
 const captureButton = document.querySelector("#captureButton");
 const copyMarkdownButton = document.querySelector("#copyMarkdownButton");
@@ -54,6 +64,9 @@ const contextFitRecommendation = document.querySelector(
   "#contextFitRecommendation"
 );
 const providerLimitNotice = document.querySelector("#providerLimitNotice");
+const refreshUsageButton = document.querySelector("#refreshUsageButton");
+const usageUpdatedAt = document.querySelector("#usageUpdatedAt");
+const usageProviders = document.querySelector("#usageProviders");
 
 let lastCapture = null;
 let currentHandoffMode = "full";
@@ -67,6 +80,122 @@ async function getActiveTab() {
 
   return tab;
 }
+
+function usageBarClass(utilization) {
+  if (utilization >= 90) {
+    return "danger";
+  }
+
+  if (utilization >= 75) {
+    return "warning";
+  }
+
+  return "";
+}
+
+function renderUsageProvider(providerRecord) {
+  const wrapper = document.createElement("section");
+  wrapper.className = "usage-provider";
+
+  const title = document.createElement("h3");
+  title.className = "usage-provider-title";
+  title.textContent = formatProviderLabel(providerRecord.provider);
+  wrapper.appendChild(title);
+
+  if (providerRecord.status !== "ok") {
+    const error = document.createElement("p");
+    error.className = "usage-error";
+    error.textContent = providerRecord.error ?? "Usage unavailable.";
+    wrapper.appendChild(error);
+    return wrapper;
+  }
+
+  for (const bucket of providerRecord.buckets ?? []) {
+    const bucketEl = document.createElement("div");
+    bucketEl.className = "usage-bucket";
+
+    const labelRow = document.createElement("div");
+    labelRow.className = "usage-bucket-label";
+    labelRow.innerHTML = `<span>${bucket.label}</span><span>${formatUsagePercent(bucket.utilization)} used</span>`;
+
+    const bar = document.createElement("div");
+    bar.className = "usage-bar";
+    const fill = document.createElement("div");
+    fill.className = `usage-bar-fill ${usageBarClass(bucket.utilization)}`;
+    fill.style.width = `${Math.max(0, Math.min(100, bucket.utilization))}%`;
+    bar.appendChild(fill);
+
+    bucketEl.appendChild(labelRow);
+    bucketEl.appendChild(bar);
+
+    const resetLabel = formatUsageResetLabel(bucket.resetsAt);
+    if (resetLabel) {
+      const reset = document.createElement("p");
+      reset.className = "usage-reset";
+      reset.textContent = resetLabel;
+      bucketEl.appendChild(reset);
+    }
+
+    wrapper.appendChild(bucketEl);
+  }
+
+  return wrapper;
+}
+
+function renderUsageSnapshot(snapshot) {
+  usageProviders.replaceChildren();
+
+  if (!snapshot?.providers || Object.keys(snapshot.providers).length === 0) {
+    const empty = document.createElement("p");
+    empty.className = "usage-reset";
+    empty.textContent = "Refresh to load Claude usage from this browser profile.";
+    usageProviders.appendChild(empty);
+    usageUpdatedAt.textContent = "Not refreshed yet.";
+    return;
+  }
+
+  for (const providerRecord of Object.values(snapshot.providers)) {
+    usageProviders.appendChild(renderUsageProvider(providerRecord));
+  }
+
+  usageUpdatedAt.textContent = snapshot.updatedAt
+    ? `Last updated: ${new Date(snapshot.updatedAt).toLocaleString()}`
+    : "Updated recently.";
+}
+
+async function refreshUsagePanel() {
+  refreshUsageButton.disabled = true;
+  usageUpdatedAt.textContent = "Refreshing usage…";
+
+  try {
+    const claudeUsage = await refreshClaudeUsage();
+    const snapshot = await mergeProviderUsage(claudeUsage);
+    renderUsageSnapshot(snapshot);
+
+    const syncResult = await syncUsageSnapshotToDesktop(snapshot);
+
+    if (!syncResult.ok) {
+      usageUpdatedAt.textContent = `${usageUpdatedAt.textContent} Desktop sync skipped.`;
+    }
+  } catch (error) {
+    usageUpdatedAt.textContent =
+      error instanceof Error ? error.message : "Unable to refresh usage.";
+  } finally {
+    refreshUsageButton.disabled = false;
+  }
+}
+
+async function initializeUsagePanel() {
+  const snapshot = await loadStoredUsageSnapshot();
+  renderUsageSnapshot(snapshot);
+}
+
+refreshUsageButton.addEventListener("click", () => {
+  refreshUsagePanel().catch((error) => {
+    usageUpdatedAt.textContent =
+      error instanceof Error ? error.message : "Unable to refresh usage.";
+  });
+});
 
 function setStatus(message) {
   status.textContent = message;
@@ -360,6 +489,8 @@ async function initialize() {
       "Restored the pending handoff. Click Capture to sync it to the desktop app."
     );
   }
+
+  await initializeUsagePanel();
 }
 
 captureButton.addEventListener("click", async () => {

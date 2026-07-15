@@ -49,6 +49,7 @@ cp "$ROOT/apps/macos/shared/inbox-bridge-config.mjs" "$BRIDGE_DIR/inbox-bridge-c
 cp "$ROOT/apps/macos/shared/handoff-inbox.mjs" "$BRIDGE_DIR/handoff-inbox.mjs"
 cp "$ROOT/apps/macos/shared/handoff-persistence.mjs" "$BRIDGE_DIR/handoff-persistence.mjs"
 cp "$ROOT/apps/macos/shared/paste-request.mjs" "$BRIDGE_DIR/paste-request.mjs"
+cp "$ROOT/apps/macos/shared/usage-snapshot.mjs" "$BRIDGE_DIR/usage-snapshot.mjs"
 
 cat > "$BRIDGE_DIR/start-inbox-bridge.sh" <<'EOF'
 #!/usr/bin/env bash
@@ -70,9 +71,13 @@ bridge_supports_paste_requests() {
   curl -fsS "$HEALTH_URL" 2>/dev/null | grep -q '"pasteRequests":true'
 }
 
+bridge_supports_usage_sync() {
+  curl -fsS "$HEALTH_URL" 2>/dev/null | grep -q '"usageSync":true'
+}
+
 if [[ -f "$PIDFILE" ]]; then
   existing_pid="$(cat "$PIDFILE")"
-  if kill -0 "$existing_pid" 2>/dev/null && bridge_running && bridge_supports_paste_requests; then
+  if kill -0 "$existing_pid" 2>/dev/null && bridge_running && bridge_supports_paste_requests && bridge_supports_usage_sync; then
     exit 0
   fi
 fi

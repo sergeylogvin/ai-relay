@@ -46,6 +46,93 @@ p {
   text-transform: capitalize;
 }
 
+.usage-panel {
+  display: grid;
+  gap: 10px;
+  padding: 12px;
+  margin-bottom: 16px;
+  border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
+  border-radius: 8px;
+}
+
+.usage-panel-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.usage-panel h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.usage-updated-at {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.72;
+}
+
+.usage-providers {
+  display: grid;
+  gap: 12px;
+}
+
+.usage-provider {
+  display: grid;
+  gap: 8px;
+}
+
+.usage-provider-title {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+}
+
+.usage-bucket {
+  display: grid;
+  gap: 4px;
+}
+
+.usage-bucket-label {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 12px;
+}
+
+.usage-bar {
+  height: 8px;
+  border-radius: 999px;
+  background: color-mix(in srgb, CanvasText 12%, transparent);
+  overflow: hidden;
+}
+
+.usage-bar-fill {
+  height: 100%;
+  border-radius: inherit;
+  background: #2563eb;
+}
+
+.usage-bar-fill.warning {
+  background: #d97706;
+}
+
+.usage-bar-fill.danger {
+  background: #dc2626;
+}
+
+.usage-reset,
+.usage-error {
+  margin: 0;
+  font-size: 11px;
+  opacity: 0.72;
+}
+
+.usage-error {
+  color: #dc2626;
+}
+
 .panel {
   display: grid;
   gap: 10px;

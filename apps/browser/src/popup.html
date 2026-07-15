@@ -16,6 +16,15 @@
         <span id="providerBadge" class="badge">Unknown</span>
       </header>
 
+      <section id="usagePanel" class="usage-panel" aria-labelledby="usageHeading">
+        <div class="usage-panel-header">
+          <h2 id="usageHeading">Account usage</h2>
+          <button id="refreshUsageButton" type="button">Refresh</button>
+        </div>
+        <p id="usageUpdatedAt" class="usage-updated-at">Not refreshed yet.</p>
+        <div id="usageProviders" class="usage-providers"></div>
+      </section>
+
       <section class="panel">
         <button id="captureButton" class="primary" type="button">
           Capture current conversation

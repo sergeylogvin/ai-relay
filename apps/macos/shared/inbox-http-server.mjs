@@ -1,12 +1,17 @@
 #!/usr/bin/env node
 
 import http from "node:http";
-import {
-  HANDOFF_INBOX_HTTP_PORT,
-  HANDOFF_INBOX_HTTP_STORE_PATH
-} from "./inbox-bridge-config.mjs";
 import { resolveHandoffInboxPath } from "./handoff-inbox.mjs";
 import { persistHandoffWithOptionalPasteRequest } from "./handoff-persistence.mjs";
+import {
+  HANDOFF_INBOX_HTTP_PORT,
+  HANDOFF_INBOX_HTTP_STORE_PATH,
+  USAGE_SNAPSHOT_HTTP_PATH
+} from "./inbox-bridge-config.mjs";
+import {
+  readUsageSnapshot,
+  writeUsageSnapshot
+} from "./usage-snapshot.mjs";
 
 function sendJson(response, statusCode, payload) {
   const body = `${JSON.stringify(payload)}\n`;
@@ -47,7 +52,8 @@ const server = http.createServer(async (request, response) => {
       ok: true,
       service: "ai-relay-inbox",
       features: {
-        pasteRequests: true
+        pasteRequests: true,
+        usageSync: true
       }
     });
     return;
@@ -69,6 +75,43 @@ const server = http.createServer(async (request, response) => {
         title: record.title,
         characters: record.characters,
         storedAt: record.storedAt
+      });
+      return;
+    } catch (error) {
+      sendJson(response, 400, {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return;
+    }
+  }
+
+  if (request.method === "GET" && request.url === USAGE_SNAPSHOT_HTTP_PATH) {
+    try {
+      const snapshot = await readUsageSnapshot();
+
+      sendJson(response, 200, {
+        ok: true,
+        snapshot
+      });
+      return;
+    } catch (error) {
+      sendJson(response, 500, {
+        ok: false,
+        error: error instanceof Error ? error.message : String(error)
+      });
+      return;
+    }
+  }
+
+  if (request.method === "POST" && request.url === USAGE_SNAPSHOT_HTTP_PATH) {
+    try {
+      const body = await readJsonBody(request);
+      const snapshot = await writeUsageSnapshot(body);
+
+      sendJson(response, 200, {
+        ok: true,
+        updatedAt: snapshot.updatedAt ?? new Date().toISOString()
       });
       return;
     } catch (error) {
