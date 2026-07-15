@@ -47,19 +47,40 @@ final class UsageStore {
     }
 
     var summaryLine: String {
-        guard let claude = claudeUsage else {
+        guard let snapshot, !snapshot.providers.isEmpty else {
             return "Usage data will appear after Refresh in the browser extension."
         }
 
-        if claude.status != "ok" {
-            return claude.error ?? "Claude usage unavailable."
+        let providerOrder = ["claude", "chatgpt", "gemini"]
+        var parts: [String] = []
+
+        for providerId in providerOrder {
+            guard let record = snapshot.providers[providerId] else {
+                continue
+            }
+
+            if record.status != "ok" {
+                continue
+            }
+
+            let bucket =
+                record.buckets.first(where: { $0.id == "session" })
+                ?? record.buckets.first(where: { $0.id == "pro" })
+                ?? record.buckets.first
+
+            guard let bucket else {
+                continue
+            }
+
+            let label = providerId.capitalized
+            parts.append("\(label) \(Int(bucket.utilization))%")
         }
 
-        guard let session = claude.buckets.first(where: { $0.id == "session" }) else {
-            return "Claude usage synced recently."
+        if parts.isEmpty {
+            return "Usage refresh completed, but no provider data is available yet."
         }
 
-        return "Claude session \(Int(session.utilization))% used"
+        return parts.joined(separator: " · ")
     }
 
     func reload() {

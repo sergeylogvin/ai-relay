@@ -14,6 +14,7 @@ import {
   formatProviderLabel
 } from "./continue-in-provider.js";
 import { copyHandoffForDesktop, storeHandoffForDesktop } from "./desktop-handoff.js";
+import { isSupportedCaptureUrl, sendTabMessage } from "./content-script-bridge.js";
 import {
   assessContextFit,
   formatContextFitBadge,
@@ -22,6 +23,8 @@ import {
 } from "./core/limit-awareness.js";
 import { formatLimitSignalLabel } from "./providers/limits.js";
 import { refreshClaudeUsage } from "./claude-usage-client.js";
+import { refreshChatGPTUsage } from "./chatgpt-usage-client.js";
+import { refreshGeminiUsage } from "./gemini-usage-client.js";
 import {
   formatUsagePercent,
   formatUsageResetLabel
@@ -148,7 +151,8 @@ function renderUsageSnapshot(snapshot) {
   if (!snapshot?.providers || Object.keys(snapshot.providers).length === 0) {
     const empty = document.createElement("p");
     empty.className = "usage-reset";
-    empty.textContent = "Refresh to load Claude usage from this browser profile.";
+    empty.textContent =
+      "Refresh to load Claude, ChatGPT, and Gemini usage from this browser profile.";
     usageProviders.appendChild(empty);
     usageUpdatedAt.textContent = "Not refreshed yet.";
     return;
@@ -168,8 +172,18 @@ async function refreshUsagePanel() {
   usageUpdatedAt.textContent = "Refreshing usage…";
 
   try {
-    const claudeUsage = await refreshClaudeUsage();
-    const snapshot = await mergeProviderUsage(claudeUsage);
+    const [claudeUsage, chatgptUsage, geminiUsage] = await Promise.all([
+      refreshClaudeUsage(),
+      refreshChatGPTUsage(),
+      refreshGeminiUsage()
+    ]);
+
+    let snapshot = (await loadStoredUsageSnapshot()) ?? { providers: {} };
+
+    for (const providerRecord of [claudeUsage, chatgptUsage, geminiUsage]) {
+      snapshot = await mergeProviderUsage(providerRecord);
+    }
+
     renderUsageSnapshot(snapshot);
 
     const syncResult = await syncUsageSnapshotToDesktop(snapshot);
@@ -491,6 +505,10 @@ async function initialize() {
   }
 
   await initializeUsagePanel();
+
+  if (currentTabProvider === "claude") {
+    refreshUsagePanel().catch(() => {});
+  }
 }
 
 captureButton.addEventListener("click", async () => {
@@ -504,7 +522,11 @@ captureButton.addEventListener("click", async () => {
       throw new Error("No active tab was found.");
     }
 
-    const response = await chrome.tabs.sendMessage(tab.id, {
+    if (!isSupportedCaptureUrl(tab.url)) {
+      throw new Error("Open Claude, ChatGPT, or Gemini before capturing.");
+    }
+
+    const response = await sendTabMessage(tab.id, {
       type: "AI_RELAY_CAPTURE"
     });
 
@@ -566,7 +588,7 @@ insertContextButton.addEventListener("click", async () => {
       throw new Error("No active tab was found.");
     }
 
-    const response = await chrome.tabs.sendMessage(tab.id, {
+    const response = await sendTabMessage(tab.id, {
       type: "AI_RELAY_INSERT_CONTEXT",
       context
     });

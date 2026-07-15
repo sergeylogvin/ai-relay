@@ -27,6 +27,35 @@ function createProjectId(conversation) {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "AI_RELAY_PING") {
+    sendResponse({ ok: true });
+    return false;
+  }
+
+  const usageFetchMessages = new Set([
+    "AI_RELAY_FETCH_CHATGPT_USAGE",
+    "AI_RELAY_FETCH_GEMINI_USAGE",
+    "AI_RELAY_GEMINI_EXTRACT_TOKENS"
+  ]);
+
+  if (usageFetchMessages.has(message?.type)) {
+    (async () => {
+      try {
+        const { handleUsageFetchMessage } = await import(
+          chrome.runtime.getURL("usage-fetch-handlers.js")
+        );
+        sendResponse(await handleUsageFetchMessage(message.type));
+      } catch (error) {
+        sendResponse({
+          ok: false,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    })();
+
+    return true;
+  }
+
   const supportedMessages = new Set([
     "AI_RELAY_CAPTURE",
     "AI_RELAY_INSERT_CONTEXT"

@@ -42,6 +42,7 @@ test("browser manifest uses minimum permissions", async () => {
     "activeTab",
     "cookies",
     "nativeMessaging",
+    "scripting",
     "storage"
   ]);
   assert.equal(manifest.permissions.includes("tabs"), false);
@@ -57,8 +58,11 @@ test("browser manifest supports the initial providers", async () => {
 
   assert.deepEqual(manifest.host_permissions.sort(), [
     "http://127.0.0.1:17831/*",
+    "https://accounts.google.com/*",
     "https://chatgpt.com/*",
     "https://claude.ai/*",
-    "https://gemini.google.com/*"
+    "https://gemini.google.com/*",
+    "https://google.com/*",
+    "https://www.google.com/*"
   ]);
 });

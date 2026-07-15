@@ -32,3 +32,34 @@ export {
   normalizeUsageBucket,
   normalizeUsageSnapshot
 } from "./usage-snapshot.js";
+export {
+  extractOrganizationIdFromCookie,
+  fetchClaudeOrganizationId,
+  fetchClaudeUsageFromSession,
+  parseClaudeUsageResponse
+} from "./claude-usage.js";
+export {
+  fetchChatGPTAccessToken,
+  fetchChatGPTUsageFromSession,
+  fetchChatGPTUsageInPageContext,
+  parseChatGPTUsageResponse
+} from "./chatgpt-usage.js";
+export {
+  buildGeminiListChatsPayloads,
+  buildGeminiListChatsPayloadFallbacks,
+  buildGeminiReadChatPayload,
+  GEMINI_BATCH_HEADERS,
+  classifyGeminiTurn,
+  classifyGeminiTurnFromRaw,
+  extractGeminiSessionTokens,
+  extractJsonFromBatchExecuteResponse,
+  fetchGeminiUsageFromSession,
+  fetchGeminiUsageInPageContext,
+  getNextPacificMidnightIso,
+  getStartOfPacificDay,
+  normalizeGeminiInitUrl,
+  normalizeGeminiSourcePath,
+  parseGeminiChatListResponse,
+  parseGeminiTurnCountsFromChatResponse,
+  parseGeminiUsageCounts
+} from "./gemini-usage.js";

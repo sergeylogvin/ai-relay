@@ -7,6 +7,7 @@
     "activeTab",
     "cookies",
     "nativeMessaging",
+    "scripting",
     "storage"
   ],
   "background": {
@@ -17,6 +18,9 @@
     "https://claude.ai/*",
     "https://chatgpt.com/*",
     "https://gemini.google.com/*",
+    "https://www.google.com/*",
+    "https://google.com/*",
+    "https://accounts.google.com/*",
     "http://127.0.0.1:17831/*"
   ],
   "action": {
@@ -44,7 +48,8 @@
         "core/*.js",
         "export/*.js",
         "capture-metadata.js",
-        "library/*.js"
+        "library/*.js",
+        "usage-fetch-handlers.js"
       ],
       "matches": [
         "https://claude.ai/*",

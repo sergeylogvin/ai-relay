@@ -35,8 +35,9 @@ test("manifest exposes provider modules only on supported hosts", async () => {
         "providers/*/*.js",
         "core/*.js",
         "export/*.js",
-    "capture-metadata.js",
-    "library/*.js"
+        "capture-metadata.js",
+        "library/*.js",
+        "usage-fetch-handlers.js"
       ],
       matches: [
         "https://claude.ai/*",

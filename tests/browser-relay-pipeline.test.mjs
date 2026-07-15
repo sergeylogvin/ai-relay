@@ -55,7 +55,8 @@ test("manifest exposes shared runtime modules only on supported hosts", async ()
     "core/*.js",
     "export/*.js",
     "capture-metadata.js",
-    "library/*.js"
+    "library/*.js",
+    "usage-fetch-handlers.js"
   ]);
 
   assert.deepEqual(entry.matches, [
