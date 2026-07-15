@@ -28,15 +28,37 @@ export async function handleUsageFetchMessage(type) {
       chrome.runtime.getURL("core/gemini-usage.js")
     );
 
-    const html = document.documentElement?.innerHTML ?? "";
-    const tokens = extractGeminiSessionTokens(html);
+    const initUrl = window.location.href.split("#")[0];
+    let html = document.documentElement?.innerHTML ?? "";
+    let tokens = extractGeminiSessionTokens(html);
+
+    if (!tokens.accessToken) {
+      for (const url of [initUrl, "https://gemini.google.com/app"]) {
+        try {
+          const response = await fetch(url, { credentials: "include" });
+
+          if (response.ok) {
+            tokens = extractGeminiSessionTokens(await response.text());
+
+            if (tokens.accessToken) {
+              break;
+            }
+          }
+        } catch {
+          // Try the next init URL.
+        }
+      }
+    }
 
     return {
       ok: true,
       tokens,
       sourcePath: "/app",
       pageUrl: window.location.href,
-      language: document.documentElement.lang?.split("-")[0] || "en"
+      language:
+        tokens.language ||
+        document.documentElement.lang?.split("-")[0] ||
+        "en"
     };
   }
 

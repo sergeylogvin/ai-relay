@@ -45,8 +45,10 @@ export {
   parseChatGPTUsageResponse
 } from "./chatgpt-usage.js";
 export {
-  buildGeminiListChatsPayload,
+  buildGeminiListChatsPayloads,
   buildGeminiListChatsPayloadFallbacks,
+  buildGeminiReadChatPayload,
+  GEMINI_BATCH_HEADERS,
   classifyGeminiTurn,
   classifyGeminiTurnFromRaw,
   extractGeminiSessionTokens,

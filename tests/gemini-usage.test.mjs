@@ -2,7 +2,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  buildGeminiListChatsPayload,
+  buildGeminiListChatsPayloads,
+  buildGeminiReadChatPayload,
   classifyGeminiTurn,
   classifyGeminiTurnFromRaw,
   extractGeminiSessionTokens,
@@ -19,8 +20,18 @@ test("classifyGeminiTurn maps pro and thinking buckets", () => {
   assert.equal(classifyGeminiTurn("fbb127bbb056c959", false), "flash");
 });
 
-test("buildGeminiListChatsPayload uses current Gemini list RPC shape", () => {
-  assert.equal(buildGeminiListChatsPayload(100), "[100,null,[0,null,1]]");
+test("buildGeminiListChatsPayloads matches Gemini web API", () => {
+  assert.deepEqual(buildGeminiListChatsPayloads(13), [
+    "[13,null,[1,null,1]]",
+    "[13,null,[0,null,1]]"
+  ]);
+});
+
+test("buildGeminiReadChatPayload uses current read RPC shape", () => {
+  assert.equal(
+    buildGeminiReadChatPayload("c_123", 10),
+    '["c_123",10,null,1,[1],[4],null,1]'
+  );
 });
 
 test("normalizeGeminiInitUrl keeps account-specific app paths", () => {
@@ -37,7 +48,8 @@ test("extractGeminiSessionTokens reads embedded init tokens", () => {
   assert.deepEqual(extractGeminiSessionTokens(html), {
     accessToken: "token-abc",
     buildLabel: "build-1",
-    sessionId: "sid-9"
+    sessionId: "sid-9",
+    language: ""
   });
 });
 

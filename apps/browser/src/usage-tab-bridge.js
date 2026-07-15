@@ -1,5 +1,10 @@
 import { sendTabMessage } from "./content-script-bridge.js";
-import { parseGeminiUsageCounts, buildGeminiListChatsPayloadFallbacks } from "./core/gemini-usage.js";
+import {
+  parseGeminiUsageCounts,
+  buildGeminiListChatsPayloads,
+  buildGeminiReadChatPayload,
+  GEMINI_BATCH_HEADERS
+} from "./core/gemini-usage.js";
 import { normalizeProviderUsage } from "./core/usage-snapshot.js";
 
 const PROVIDER_TAB_PATTERNS = Object.freeze({
@@ -20,13 +25,18 @@ async function geminiMainWorldUsageRunner(context) {
     sourcePath = "/app",
     pageUrl,
     language = "en",
-    listChatPayloads = ["[100,null,[0,null,1]]", "[100]", "[50,null,[0,null,1]]", "[50]"]
+    listChatPayloads = ["[13,null,[1,null,1]]", "[13,null,[0,null,1]]"],
+    batchHeaders = {
+      "x-goog-ext-525001261-jspb": "[1,null,null,null,null,null,null,null,[4]]",
+      "x-goog-ext-73010989-jspb": "[0]"
+    }
   } = context ?? {};
 
-  if (!accessToken && !buildLabel) {
+  if (!accessToken) {
     return {
       __relayOk: false,
-      error: "Could not extract Gemini session tokens from page."
+      error:
+        "Gemini access token missing. Refresh gemini.google.com in this tab and try again."
     };
   }
 
@@ -68,10 +78,11 @@ async function geminiMainWorldUsageRunner(context) {
         credentials: "include",
         headers: {
           "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-          Origin: location.origin,
+          Origin: "https://gemini.google.com",
           Referer: referer,
           "User-Agent": userAgent,
-          "X-Same-Domain": "1"
+          "X-Same-Domain": "1",
+          ...batchHeaders
         },
         body: form.toString()
       }
@@ -285,24 +296,24 @@ async function geminiMainWorldUsageRunner(context) {
 
   try {
     const sinceUnixSeconds = Math.floor(getStartOfPacificDay().getTime() / 1000);
-    let listRaw = "";
-    let chats = [];
+    const chatsById = new Map();
     let lastListError = null;
 
     for (const payload of listChatPayloads) {
       try {
-        listRaw = await batchExecute("MaZiqc", payload);
-        chats = parseChatList(listRaw);
+        const listRaw = await batchExecute("MaZiqc", payload);
 
-        if (chats.length > 0 || listRaw.trim().length > 0) {
-          break;
+        for (const chat of parseChatList(listRaw)) {
+          chatsById.set(chat.cid, chat);
         }
       } catch (error) {
         lastListError = error;
       }
     }
 
-    if (!listRaw && lastListError) {
+    const chats = [...chatsById.values()];
+
+    if (chats.length === 0 && lastListError) {
       throw lastListError;
     }
 
@@ -320,7 +331,7 @@ async function geminiMainWorldUsageRunner(context) {
 
       scanned += 1;
 
-      const payload = JSON.stringify([chat.cid, 100, null, 1, [0], [4], null, 1]);
+      const payload = JSON.stringify([chat.cid, 10, null, 1, [1], [4], null, 1]);
       const readRaw = await batchExecute("hNvQHb", payload);
       const counts = parseTurnCounts(readRaw, sinceUnixSeconds);
       totals.pro += counts.pro;
@@ -417,11 +428,12 @@ async function fetchGeminiUsageFromMainWorld(tabId) {
 
     const { accessToken, buildLabel, sessionId } = tokenResponse.tokens ?? {};
 
-    if (!accessToken && !buildLabel) {
+    if (!accessToken) {
       return normalizeProviderUsage({
         provider: "gemini",
         status: "error",
-        error: "Could not extract Gemini session tokens from page.",
+        error:
+          "Gemini access token missing. Refresh gemini.google.com in this tab and try again.",
         buckets: []
       });
     }
@@ -438,7 +450,8 @@ async function fetchGeminiUsageFromMainWorld(tabId) {
           sourcePath: tokenResponse.sourcePath ?? "/app",
           pageUrl: tokenResponse.pageUrl ?? tab.url,
           language: tokenResponse.language ?? "en",
-          listChatPayloads: buildGeminiListChatsPayloadFallbacks(100)
+          listChatPayloads: buildGeminiListChatsPayloads(13),
+          batchHeaders: GEMINI_BATCH_HEADERS
         }
       ]
     });
