@@ -139,6 +139,7 @@ test("inbox HTTP bridge stores handoff records", async () => {
     const health = await fetch("http://127.0.0.1:17832/health");
     const healthBody = await health.json();
     assert.equal(healthBody.features?.pasteRequests, true);
+    assert.equal(healthBody.features?.usageSync, true);
 
     const loaded = await readHandoffInbox(
       join(directory, "Library/Application Support/AI Relay/pending-handoff.json")
@@ -351,6 +352,80 @@ test("inbox HTTP bridge clears stale paste requests on capture-only sync", async
     });
 
     assert.equal(await readPasteRequest(pasteRequestPath), null);
+  } finally {
+    child.kill("SIGTERM");
+    await rm(directory, { recursive: true, force: true });
+  }
+});
+
+test("inbox HTTP bridge stores usage snapshots", async () => {
+  const { spawn } = await import("node:child_process");
+  const directory = await mkdtemp(join(tmpdir(), "ai-relay-usage-http-"));
+  const serverPath = resolve(
+    import.meta.dirname,
+    "../apps/macos/shared/inbox-http-server.mjs"
+  );
+  const { readUsageSnapshot } = await import("../apps/macos/shared/usage-snapshot.mjs");
+  const usagePath = join(
+    directory,
+    "Library/Application Support/AI Relay/usage-snapshot.json"
+  );
+
+  const child = spawn(process.execPath, [serverPath], {
+    env: {
+      ...process.env,
+      HOME: directory,
+      AI_RELAY_INBOX_HTTP_PORT: "17836"
+    },
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+
+  try {
+    await new Promise((resolvePromise, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("Inbox HTTP bridge did not start in time."));
+      }, 5000);
+
+      child.stderr.on("data", (chunk) => {
+        if (String(chunk).includes("listening on")) {
+          clearTimeout(timeout);
+          resolvePromise();
+        }
+      });
+
+      child.on("error", reject);
+    });
+
+    const response = await fetch("http://127.0.0.1:17836/usage", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        schemaVersion: 1,
+        updatedAt: "2026-07-15T12:00:00.000Z",
+        providers: {
+          claude: {
+            provider: "claude",
+            status: "ok",
+            fetchedAt: "2026-07-15T12:00:00.000Z",
+            buckets: [
+              {
+                id: "session",
+                label: "Session (5 hour)",
+                utilization: 32,
+                resetsAt: "2026-07-15T14:09:00.000Z"
+              }
+            ]
+          }
+        }
+      })
+    });
+
+    assert.equal(response.status, 200);
+
+    const loaded = await readUsageSnapshot(usagePath);
+    assert.equal(loaded.providers.claude.buckets[0].utilization, 32);
   } finally {
     child.kill("SIGTERM");
     await rm(directory, { recursive: true, force: true });

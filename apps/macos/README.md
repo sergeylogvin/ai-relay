@@ -91,6 +91,10 @@ Manual fallback:
 
 Manual fallback: **Cmd+Shift+V** or **Cmd+V**.
 
+### Claude usage tracking
+
+The browser extension can refresh Claude session and weekly usage from your signed-in claude.ai cookies and sync the snapshot to the macOS companion. Open the extension popup, use **Account usage → Refresh**, and the companion window will show the same progress bars.
+
 Detected desktop targets:
 
 - ChatGPT desktop (`com.openai.codex`, `com.openai.chat`, app name contains "ChatGPT")

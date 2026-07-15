@@ -2,8 +2,11 @@ import AppKit
 
 final class HandoffPanelController: NSWindowController, NSWindowDelegate {
     private let store: HandoffStore
+    private let usageStore: UsageStore
     private let titleField = NSTextField(wrappingLabelWithString: "No pending handoff")
     private let statusField = NSTextField(wrappingLabelWithString: "Capture in the browser extension.")
+    private let usageHeading = NSTextField(labelWithString: "Claude usage")
+    private let usageStack = NSStackView()
     private let copyButton = NSButton(title: "Copy handoff", target: nil, action: nil)
     private let pasteButton = NSButton(title: "Paste into front app", target: nil, action: nil)
     private let refreshButton = NSButton(title: "Refresh", target: nil, action: nil)
@@ -19,12 +22,13 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
         action: nil
     )
 
-    init(store: HandoffStore, hotkeyController: GlobalPasteHotkeyController) {
+    init(store: HandoffStore, usageStore: UsageStore, hotkeyController: GlobalPasteHotkeyController) {
         self.store = store
+        self.usageStore = usageStore
         self.hotkeyController = hotkeyController
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 340),
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 460),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -59,6 +63,71 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
         clearButton.isEnabled = hasHandoff
         launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled() ? .on : .off
         pasteHotkeyCheckbox.state = hotkeyController.isEnabled ? .on : .off
+        renderUsage()
+    }
+
+    private func renderUsage() {
+        usageStore.reload()
+        usageStack.arrangedSubviews.forEach { view in
+            usageStack.removeArrangedSubview(view)
+            view.removeFromSuperview()
+        }
+
+        guard let claude = usageStore.claudeUsage else {
+            let placeholder = NSTextField(wrappingLabelWithString: usageStore.summaryLine)
+            placeholder.isEditable = false
+            placeholder.isBordered = false
+            placeholder.drawsBackground = false
+            placeholder.font = NSFont.systemFont(ofSize: 12)
+            placeholder.textColor = .secondaryLabelColor
+            usageStack.addArrangedSubview(placeholder)
+            return
+        }
+
+        if claude.status != "ok" {
+            let errorField = NSTextField(wrappingLabelWithString: claude.error ?? "Claude usage unavailable.")
+            errorField.isEditable = false
+            errorField.isBordered = false
+            errorField.drawsBackground = false
+            errorField.font = NSFont.systemFont(ofSize: 12)
+            errorField.textColor = .systemRed
+            usageStack.addArrangedSubview(errorField)
+            return
+        }
+
+        for bucket in claude.buckets {
+            usageStack.addArrangedSubview(makeUsageBucketView(bucket))
+        }
+    }
+
+    private func makeUsageBucketView(_ bucket: UsageBucketRecord) -> NSView {
+        let container = NSStackView()
+        container.orientation = .vertical
+        container.alignment = .leading
+        container.spacing = 4
+
+        let labelRow = NSTextField(labelWithString: "\(bucket.label): \(Int(bucket.utilization))% used")
+        labelRow.font = NSFont.systemFont(ofSize: 12)
+
+        let progress = NSProgressIndicator()
+        progress.isIndeterminate = false
+        progress.minValue = 0
+        progress.maxValue = 100
+        progress.doubleValue = bucket.utilization
+        progress.translatesAutoresizingMaskIntoConstraints = false
+        progress.widthAnchor.constraint(equalToConstant: 320).isActive = true
+
+        container.addArrangedSubview(labelRow)
+        container.addArrangedSubview(progress)
+
+        if let resetLabel = usageStore.formatResetLabel(bucket.resetsAt) {
+            let resetField = NSTextField(labelWithString: resetLabel)
+            resetField.font = NSFont.systemFont(ofSize: 11)
+            resetField.textColor = .secondaryLabelColor
+            container.addArrangedSubview(resetField)
+        }
+
+        return container
     }
 
     func showPanel() {
@@ -180,6 +249,10 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
         titleField.font = NSFont.boldSystemFont(ofSize: 15)
         statusField.font = NSFont.systemFont(ofSize: 12)
         statusField.textColor = .secondaryLabelColor
+        usageHeading.font = NSFont.boldSystemFont(ofSize: 13)
+        usageStack.orientation = .vertical
+        usageStack.alignment = .leading
+        usageStack.spacing = 8
 
         copyButton.target = self
         copyButton.action = #selector(copyHandoff)
@@ -217,6 +290,8 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
         let stack = NSStackView(views: [
             titleField,
             statusField,
+            usageHeading,
+            usageStack,
             actionRow,
             utilityRow,
             launchAtLoginCheckbox,
@@ -235,6 +310,7 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
             stack.bottomAnchor.constraint(lessThanOrEqualTo: contentView.bottomAnchor, constant: -16),
             titleField.widthAnchor.constraint(equalTo: stack.widthAnchor),
             statusField.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            usageStack.widthAnchor.constraint(equalTo: stack.widthAnchor),
             actionRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
             utilityRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
             pasteHotkeyCheckbox.widthAnchor.constraint(equalTo: stack.widthAnchor)
@@ -244,6 +320,7 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = HandoffStore()
+    private let usageStore = UsageStore()
     private let pasteRequestMonitor = PasteRequestMonitor()
     private let hotkeyController = GlobalPasteHotkeyController()
     private var panelController: HandoffPanelController?
@@ -254,7 +331,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         InboxBridgeLauncher.ensureRunning()
 
-        panelController = HandoffPanelController(store: store, hotkeyController: hotkeyController)
+        panelController = HandoffPanelController(
+            store: store,
+            usageStore: usageStore,
+            hotkeyController: hotkeyController
+        )
 
         hotkeyController.start { [weak self] in
             guard let self, let panelController = self.panelController else {

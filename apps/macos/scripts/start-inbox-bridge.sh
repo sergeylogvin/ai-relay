@@ -17,9 +17,13 @@ bridge_supports_paste_requests() {
   curl -fsS "$HEALTH_URL" 2>/dev/null | grep -q '"pasteRequests":true'
 }
 
+bridge_supports_usage_sync() {
+  curl -fsS "$HEALTH_URL" 2>/dev/null | grep -q '"usageSync":true'
+}
+
 if [[ -f "$PIDFILE" ]]; then
   existing_pid="$(cat "$PIDFILE")"
-  if kill -0 "$existing_pid" 2>/dev/null && bridge_running && bridge_supports_paste_requests; then
+  if kill -0 "$existing_pid" 2>/dev/null && bridge_running && bridge_supports_paste_requests && bridge_supports_usage_sync; then
     exit 0
   fi
 fi
