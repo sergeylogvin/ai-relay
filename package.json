@@ -16,6 +16,7 @@
     "install:macos-native-host": "node apps/macos/scripts/install-native-host.mjs",
     "build:macos-menu-bar": "bash apps/macos/scripts/build-menu-bar.sh",
     "package:macos-menu-bar": "bash apps/macos/scripts/package-menu-bar-app.sh",
-    "launch:macos-menu-bar": "bash apps/macos/scripts/launch-menu-bar-app.sh"
+    "launch:macos-menu-bar": "bash apps/macos/scripts/launch-menu-bar-app.sh",
+    "install:macos-companion": "bash apps/macos/scripts/install-macos-companion.sh"
   }
 }

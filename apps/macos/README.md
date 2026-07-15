@@ -33,6 +33,18 @@ open apps/macos/MenuBar/dist/AIRelayMenuBar.app
 
 Use the `.app` bundle, not the raw binary from Terminal. Launching the binary directly keeps a Terminal window attached; closing that window quits the app.
 
+### Install for daily use
+
+For login-at-login and paste support, install the app into `~/Applications`:
+
+```bash
+cd ~/ai-relay
+npm run install:macos-companion
+open ~/Applications/AI\ Relay.app
+```
+
+In the AI Relay window, enable **Launch at login**. After that, the companion and inbox bridge start quietly in the background when you sign in to macOS. Use the Dock icon when you want to paste a handoff.
+
 When the app starts, it opens a small **AI Relay window** with the latest handoff. macOS may hide the top menu bar item on crowded MacBooks; the Dock icon remains the reliable entry point.
 
 The menu bar label shows the latest handoff title when macOS leaves room for it. When no handoff is stored yet, it shows `AI Relay`.
@@ -68,5 +80,4 @@ If the native host is not installed, the extension falls back to the normal brow
 
 ## Next steps
 
-- Launch the menu bar app automatically at login
-- Limit awareness in the browser popup
+- Global hotkey for paste without opening the window
