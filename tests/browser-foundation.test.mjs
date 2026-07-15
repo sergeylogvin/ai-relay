@@ -40,6 +40,7 @@ test("browser manifest uses minimum permissions", async () => {
   assert.equal(manifest.manifest_version, 3);
   assert.deepEqual(manifest.permissions.sort(), [
     "activeTab",
+    "nativeMessaging",
     "storage"
   ]);
   assert.equal(manifest.permissions.includes("cookies"), false);

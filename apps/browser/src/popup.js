@@ -8,13 +8,17 @@ import {
   savePendingHandoff
 } from "./handoff-session-storage.js";
 import { renderHandoffByMode } from "./export/handoff-modes.js";
+import { renderCursorContextPack } from "./export/cursor-context-pack.js";
 import {
   formatMigrationRoute,
   formatProviderLabel
 } from "./continue-in-provider.js";
+import { copyHandoffForDesktop } from "./desktop-handoff.js";
 
 const captureButton = document.querySelector("#captureButton");
 const copyMarkdownButton = document.querySelector("#copyMarkdownButton");
+const copyForCursorButton = document.querySelector("#copyForCursorButton");
+const copyForDesktopButton = document.querySelector("#copyForDesktopButton");
 const insertContextButton = document.querySelector("#insertContextButton");
 const copyJsonButton = document.querySelector("#copyJsonButton");
 const downloadMarkdownButton = document.querySelector(
@@ -57,6 +61,8 @@ function setStatus(message) {
 function setButtonsEnabled(enabled) {
   insertContextButton.disabled = !enabled;
   copyMarkdownButton.disabled = !enabled;
+  copyForCursorButton.disabled = !enabled;
+  copyForDesktopButton.disabled = !enabled;
   copyJsonButton.disabled = !enabled;
   downloadMarkdownButton.disabled = !enabled;
   downloadJsonButton.disabled = !enabled;
@@ -159,6 +165,16 @@ function renderHandoffMarkdownForMode(capture, mode = currentHandoffMode) {
     handoff,
     mode,
     recentMessageLimit: 12
+  });
+}
+
+function renderCursorContextPackForCapture(capture) {
+  const conversation = buildConversationFromCapture(capture);
+  const handoff = capture?.handoff ?? parseCaptureEnvelope(capture)?.handoff ?? null;
+
+  return renderCursorContextPack({
+    conversation,
+    handoff
   });
 }
 
@@ -382,6 +398,59 @@ copyMarkdownButton.addEventListener("click", async () => {
 
   await navigator.clipboard.writeText(markdown);
   setStatus("Markdown handoff copied.");
+});
+
+copyForCursorButton.addEventListener("click", async () => {
+  if (!lastCapture) return;
+
+  copyForCursorButton.disabled = true;
+
+  try {
+    const contextPack = renderCursorContextPackForCapture(lastCapture);
+
+    await navigator.clipboard.writeText(contextPack);
+    setStatus(
+      "Cursor context pack copied. Paste it into Cursor Agent chat with Cmd+V."
+    );
+  } catch (error) {
+    setStatus(
+      error instanceof Error
+        ? error.message
+        : "Unable to copy the Cursor context pack."
+    );
+  } finally {
+    copyForCursorButton.disabled = false;
+  }
+});
+
+copyForDesktopButton.addEventListener("click", async () => {
+  const markdown = getActiveHandoffMarkdown();
+  if (!markdown) return;
+
+  copyForDesktopButton.disabled = true;
+
+  try {
+    const result = await copyHandoffForDesktop(markdown);
+
+    if (result.fallback === "clipboard") {
+      setStatus(
+        "Desktop helper not installed. Copied handoff to clipboard instead."
+      );
+      return;
+    }
+
+    setStatus(
+      `Copied ${result.characters ?? markdown.length} character(s) for desktop paste. Switch apps and press Cmd+V.`
+    );
+  } catch (error) {
+    setStatus(
+      error instanceof Error
+        ? error.message
+        : "Unable to copy this handoff for desktop."
+    );
+  } finally {
+    copyForDesktopButton.disabled = false;
+  }
 });
 
 copyJsonButton.addEventListener("click", async () => {

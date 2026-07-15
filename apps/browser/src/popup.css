@@ -162,6 +162,30 @@ textarea {
   gap: 8px;
 }
 
+.desktop-panel {
+  display: grid;
+  gap: 8px;
+  padding: 12px;
+  border: 1px solid color-mix(in srgb, CanvasText 16%, transparent);
+  border-radius: 8px;
+}
+
+.desktop-panel h2 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.desktop-panel p {
+  margin: 0;
+  font-size: 12px;
+  opacity: 0.75;
+}
+
+.desktop-actions {
+  display: grid;
+  gap: 8px;
+}
+
 select {
   width: 100%;
   font: inherit;

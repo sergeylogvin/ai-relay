@@ -1,5 +1,6 @@
 export { sha256 } from "./checksum.js";
 export { ExportEngine } from "./exporter.js";
+export { renderCursorContextPack } from "./cursor-context-pack.js";
 export {
   EXPORT_HANDOFF_MODES,
   estimateHandoffCharacters,
