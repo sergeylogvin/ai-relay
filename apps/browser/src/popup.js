@@ -14,6 +14,7 @@ import {
   formatProviderLabel
 } from "./continue-in-provider.js";
 import { copyHandoffForDesktop, storeHandoffForDesktop } from "./desktop-handoff.js";
+import { isSupportedCaptureUrl, sendTabMessage } from "./content-script-bridge.js";
 import {
   assessContextFit,
   formatContextFitBadge,
@@ -491,6 +492,10 @@ async function initialize() {
   }
 
   await initializeUsagePanel();
+
+  if (currentTabProvider === "claude") {
+    refreshUsagePanel().catch(() => {});
+  }
 }
 
 captureButton.addEventListener("click", async () => {
@@ -504,7 +509,11 @@ captureButton.addEventListener("click", async () => {
       throw new Error("No active tab was found.");
     }
 
-    const response = await chrome.tabs.sendMessage(tab.id, {
+    if (!isSupportedCaptureUrl(tab.url)) {
+      throw new Error("Open Claude, ChatGPT, or Gemini before capturing.");
+    }
+
+    const response = await sendTabMessage(tab.id, {
       type: "AI_RELAY_CAPTURE"
     });
 
@@ -566,7 +575,7 @@ insertContextButton.addEventListener("click", async () => {
       throw new Error("No active tab was found.");
     }
 
-    const response = await chrome.tabs.sendMessage(tab.id, {
+    const response = await sendTabMessage(tab.id, {
       type: "AI_RELAY_INSERT_CONTEXT",
       context
     });

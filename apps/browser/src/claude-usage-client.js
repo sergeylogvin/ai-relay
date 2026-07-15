@@ -1,13 +1,27 @@
-import { fetchClaudeUsageFromSession } from "./providers/claude/usage.js";
+import { fetchClaudeUsageFromSession } from "./core/claude-usage.js";
+
+const CLAUDE_URLS = ["https://claude.ai/", "https://www.claude.ai/"];
 
 export async function getClaudeCookieHeader() {
-  const domains = ["claude.ai", ".claude.ai"];
   const seen = new Map();
 
-  for (const domain of domains) {
-    const cookies = await chrome.cookies.getAll({ domain });
+  for (const url of CLAUDE_URLS) {
+    const cookies = await chrome.cookies.getAll({ url });
 
     for (const cookie of cookies) {
+      seen.set(cookie.name, cookie.value);
+    }
+  }
+
+  const [tab] = await chrome.tabs.query({
+    active: true,
+    currentWindow: true
+  });
+
+  if (tab?.url?.includes("claude.ai")) {
+    const tabCookies = await chrome.cookies.getAll({ url: tab.url });
+
+    for (const cookie of tabCookies) {
       seen.set(cookie.name, cookie.value);
     }
   }
