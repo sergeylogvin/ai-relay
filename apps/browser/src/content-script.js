@@ -27,6 +27,11 @@ function createProjectId(conversation) {
 }
 
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
+  if (message?.type === "AI_RELAY_PING") {
+    sendResponse({ ok: true });
+    return false;
+  }
+
   const supportedMessages = new Set([
     "AI_RELAY_CAPTURE",
     "AI_RELAY_INSERT_CONTEXT"

@@ -42,6 +42,7 @@ test("browser manifest uses minimum permissions", async () => {
     "activeTab",
     "cookies",
     "nativeMessaging",
+    "scripting",
     "storage"
   ]);
   assert.equal(manifest.permissions.includes("tabs"), false);

@@ -1,4 +1,5 @@
 import { getProviderUrl } from "./core/continuation.js";
+import { sendTabMessage } from "./content-script-bridge.js";
 
 const PROVIDER_LABELS = Object.freeze({
   chatgpt: "ChatGPT",
@@ -42,7 +43,7 @@ async function insertContextWithRetry(tabId, context, attempts = 12) {
 
   for (let attempt = 0; attempt < attempts; attempt += 1) {
     try {
-      const response = await chrome.tabs.sendMessage(tabId, {
+      const response = await sendTabMessage(tabId, {
         type: "AI_RELAY_INSERT_CONTEXT",
         context
       });
