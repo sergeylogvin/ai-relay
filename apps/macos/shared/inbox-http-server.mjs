@@ -9,6 +9,10 @@ import {
   resolveHandoffInboxPath,
   writeHandoffInbox
 } from "./handoff-inbox.mjs";
+import {
+  resolvePasteRequestPath,
+  writePasteRequest
+} from "./paste-request.mjs";
 
 function sendJson(response, statusCode, payload) {
   const body = `${JSON.stringify(payload)}\n`;
@@ -59,6 +63,16 @@ const server = http.createServer(async (request, response) => {
         },
         resolveHandoffInboxPath()
       );
+
+      if (body.metadata?.pasteRequested) {
+        await writePasteRequest(
+          {
+            storedAt: record.storedAt,
+            targetApp: body.metadata.targetApp ?? "front"
+          },
+          resolvePasteRequestPath()
+        );
+      }
 
       sendJson(response, 200, {
         ok: true,

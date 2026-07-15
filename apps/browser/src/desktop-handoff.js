@@ -8,7 +8,9 @@ function buildDesktopMessage(markdown, metadata = {}) {
       provider: metadata.provider ?? null,
       title: metadata.title ?? null,
       url: metadata.url ?? null,
-      handoffMode: metadata.handoffMode ?? null
+      handoffMode: metadata.handoffMode ?? null,
+      targetApp: metadata.targetApp ?? null,
+      pasteRequested: metadata.pasteRequested === true
     }
   };
 }

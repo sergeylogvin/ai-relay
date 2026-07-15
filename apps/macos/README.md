@@ -80,7 +80,10 @@ Manual fallback:
 
 ### Cursor workflow
 
-Use **Copy for Cursor** in the popup for a compact context pack without the transcript.
+1. Capture in the browser.
+2. Click **Copy for Cursor** in the popup.
+3. Switch to **Cursor** and focus the chat input.
+4. The context pack pastes automatically. Manual fallback: **Cmd+Shift+V** or **Cmd+V**.
 
 ### Manual desktop copy
 
@@ -90,4 +93,4 @@ If the native host is not installed, the extension falls back to the normal brow
 
 ## Next steps
 
-- Paste Cursor context packs directly after **Copy for Cursor**
+- Auto-paste for **Copy for Desktop** into ChatGPT Cowork

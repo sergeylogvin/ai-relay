@@ -244,9 +244,11 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = HandoffStore()
+    private let pasteRequestMonitor = PasteRequestMonitor()
     private let hotkeyController = GlobalPasteHotkeyController()
     private var panelController: HandoffPanelController?
     private var pollTimer: Timer?
+    private var workspaceObserver: NSObjectProtocol?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         InboxBridgeLauncher.ensureRunning()
@@ -262,12 +264,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             panelController.applyPasteResult(result, hotkey: true)
         }
 
+        workspaceObserver = NSWorkspace.shared.notificationCenter.addObserver(
+            forName: NSWorkspace.didActivateApplicationNotification,
+            object: nil,
+            queue: .main
+        ) { [weak self] notification in
+            guard
+                let app = notification.userInfo?[NSWorkspace.applicationUserInfoKey]
+                    as? NSRunningApplication
+            else {
+                return
+            }
+
+            self?.handlePendingPasteRequest(for: app)
+        }
+
         if LaunchAtLoginController.shouldPresentWindowOnLaunch() {
             panelController?.showPanel()
         }
 
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
+        pollTimer = Timer.scheduledTimer(withTimeInterval: 1.0, repeats: true) { [weak self] _ in
             self?.panelController?.refresh()
+
+            if let frontApp = NSWorkspace.shared.frontmostApplication {
+                self?.handlePendingPasteRequest(for: frontApp)
+            }
+        }
+    }
+
+    private func handlePendingPasteRequest(for app: NSRunningApplication) {
+        guard let request = pasteRequestMonitor.pendingRequest() else {
+            return
+        }
+
+        store.reload()
+
+        guard store.matchesStoredAt(request.storedAt) else {
+            return
+        }
+
+        guard pasteRequestMonitor.shouldHandle(request: request, for: app) else {
+            return
+        }
+
+        let result = HandoffPasteService.pasteFromHotkey(store: store)
+        pasteRequestMonitor.markHandled(request)
+
+        if result == .pasted {
+            panelController?.refresh()
         }
     }
 
@@ -278,6 +322,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         pollTimer?.invalidate()
+
+        if let workspaceObserver {
+            NSWorkspace.shared.notificationCenter.removeObserver(workspaceObserver)
+        }
+
         hotkeyController.stop()
     }
 }

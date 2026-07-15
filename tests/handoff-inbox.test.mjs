@@ -145,3 +145,68 @@ test("inbox HTTP bridge stores handoff records", async () => {
     await rm(directory, { recursive: true, force: true });
   }
 });
+
+test("inbox HTTP bridge writes paste requests for cursor auto-paste", async () => {
+  const { spawn } = await import("node:child_process");
+  const directory = await mkdtemp(join(tmpdir(), "ai-relay-inbox-http-"));
+  const serverPath = resolve(
+    import.meta.dirname,
+    "../apps/macos/shared/inbox-http-server.mjs"
+  );
+  const { readPasteRequest } = await import("../apps/macos/shared/paste-request.mjs");
+
+  const child = spawn(process.execPath, [serverPath], {
+    env: {
+      ...process.env,
+      HOME: directory,
+      AI_RELAY_INBOX_HTTP_PORT: "17833"
+    },
+    stdio: ["ignore", "pipe", "pipe"]
+  });
+
+  try {
+    await new Promise((resolvePromise, reject) => {
+      const timeout = setTimeout(() => {
+        reject(new Error("Inbox HTTP bridge did not start in time."));
+      }, 5000);
+
+      child.stderr.on("data", (chunk) => {
+        if (String(chunk).includes("listening on")) {
+          clearTimeout(timeout);
+          resolvePromise();
+        }
+      });
+
+      child.on("error", reject);
+    });
+
+    const response = await fetch("http://127.0.0.1:17833/handoff", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({
+        markdown: "# Cursor Context Pack\n\nContinue here.",
+        metadata: {
+          provider: "claude",
+          title: "Cursor task",
+          handoffMode: "context-pack",
+          targetApp: "cursor",
+          pasteRequested: true
+        }
+      })
+    });
+
+    assert.equal(response.status, 200);
+
+    const pasteRequest = await readPasteRequest(
+      join(directory, "Library/Application Support/AI Relay/pending-paste-request.json")
+    );
+
+    assert.equal(pasteRequest.targetApp, "cursor");
+    assert.equal(typeof pasteRequest.storedAt, "string");
+  } finally {
+    child.kill("SIGTERM");
+    await rm(directory, { recursive: true, force: true });
+  }
+});

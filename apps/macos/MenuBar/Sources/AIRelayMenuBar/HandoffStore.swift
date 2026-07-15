@@ -65,6 +65,10 @@ final class HandoffStore: ObservableObject {
         return "\(handoff.provider) · \(mode) · \(handoff.characters) chars · synced \(syncedAt)"
     }
 
+    func matchesStoredAt(_ storedAt: String) -> Bool {
+        handoff?.storedAt == storedAt
+    }
+
     private func formatStoredAt(_ isoDate: String) -> String {
         let parser = ISO8601DateFormatter()
         parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
