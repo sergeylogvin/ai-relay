@@ -53,6 +53,8 @@ export {
   fetchGeminiUsageInPageContext,
   getNextPacificMidnightIso,
   getStartOfPacificDay,
+  normalizeGeminiInitUrl,
+  normalizeGeminiSourcePath,
   parseGeminiChatListResponse,
   parseGeminiTurnCountsFromChatResponse,
   parseGeminiUsageCounts

@@ -23,6 +23,34 @@ const PRO_ONLY_VARIANTS = new Set([
 const DEFAULT_PRO_LIMIT = 100;
 const DEFAULT_THINKING_LIMIT = 300;
 
+export function normalizeGeminiInitUrl(url = "") {
+  try {
+    const parsed = new URL(url);
+
+    if (parsed.hostname !== "gemini.google.com") {
+      return INIT_URL;
+    }
+
+    if (parsed.pathname.includes("/app")) {
+      parsed.hash = "";
+      return parsed.toString();
+    }
+
+    return INIT_URL;
+  } catch {
+    return INIT_URL;
+  }
+}
+
+export function normalizeGeminiSourcePath(url = "") {
+  try {
+    const pathname = new URL(url).pathname;
+
+    return pathname.includes("/app") ? pathname : "/app";
+  } catch {
+    return "/app";
+  }
+}
 const SNlM0e_RE = /"SNlM0e":\s*"(.*?)"/;
 const CFB2H_RE = /"cfb2h":\s*"(.*?)"/;
 const FDRFJE_RE = /"FdrFJe":\s*"(.*?)"/;
@@ -398,10 +426,16 @@ function buildAuthFetchOptions(cookieHeader, headers = {}) {
   };
 }
 
-export async function fetchGeminiUsageInPageContext(options = {}) {
+export async function fetchGeminiUsageInPageContext({
+  initUrl = INIT_URL,
+  sourcePath = normalizeGeminiSourcePath(initUrl),
+  ...options
+} = {}) {
   return fetchGeminiUsageCore({
     ...options,
-    cookieHeader: null
+    cookieHeader: null,
+    initUrl: normalizeGeminiInitUrl(initUrl),
+    sourcePath
   });
 }
 
@@ -411,10 +445,16 @@ async function fetchGeminiUsageCore({
   now = new Date(),
   proLimit = DEFAULT_PRO_LIMIT,
   thinkingLimit = DEFAULT_THINKING_LIMIT,
-  chatLimit = 200
+  chatLimit = 100,
+  maxChatsToScan = 20,
+  initUrl = INIT_URL,
+  sourcePath = "/app"
 } = {}) {
   try {
-    const session = await initGeminiSession(cookieHeader, fetchImpl);
+    const session = await initGeminiSession(cookieHeader, fetchImpl, {
+      initUrl,
+      sourcePath
+    });
     const sinceUnixSeconds = Math.floor(getStartOfPacificDay(now).getTime() / 1000);
     const chats = await listGeminiChats(session, fetchImpl, chatLimit);
 
@@ -428,11 +468,18 @@ async function fetchGeminiUsageCore({
     }
 
     const totals = { pro: 0, thinking: 0, flash: 0 };
+    let scanned = 0;
 
     for (const chat of chats.items) {
       if (chat.timestamp < sinceUnixSeconds) {
         continue;
       }
+
+      if (scanned >= maxChatsToScan) {
+        break;
+      }
+
+      scanned += 1;
 
       const counts = await countGeminiTurnsInChat(
         session,
@@ -447,10 +494,15 @@ async function fetchGeminiUsageCore({
 
     return parseGeminiUsageCounts(totals, { proLimit, thinkingLimit, now });
   } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+
     return normalizeProviderUsage({
       provider: "gemini",
       status: "error",
-      error: error instanceof Error ? error.message : String(error),
+      error:
+        message === "Failed to fetch"
+          ? "Gemini usage request blocked. Keep gemini.google.com open and try Refresh again."
+          : message,
       buckets: []
     });
   }
@@ -483,22 +535,25 @@ export async function fetchGeminiUsageFromSession({
   });
 }
 
-async function initGeminiSession(cookieHeader, fetchImpl) {
+async function initGeminiSession(cookieHeader, fetchImpl, { initUrl = INIT_URL, sourcePath = "/app" } = {}) {
   const userAgent =
     "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36";
+  const usePageFetch = !cookieHeader;
 
-  await fetchImpl(
-    GOOGLE_ORIGIN,
-    {
-      method: "GET",
-      ...buildAuthFetchOptions(cookieHeader, {
-        "User-Agent": userAgent
-      })
-    }
-  );
+  if (cookieHeader) {
+    await fetchImpl(
+      GOOGLE_ORIGIN,
+      {
+        method: "GET",
+        ...buildAuthFetchOptions(cookieHeader, {
+          "User-Agent": userAgent
+        })
+      }
+    );
+  }
 
   const response = await fetchImpl(
-    INIT_URL,
+    initUrl,
     {
       method: "GET",
       ...buildAuthFetchOptions(cookieHeader, {
@@ -522,6 +577,8 @@ async function initGeminiSession(cookieHeader, fetchImpl) {
   return {
     ...tokens,
     cookieHeader,
+    sourcePath,
+    usePageFetch,
     reqId: 10000 + Math.floor(Date.now() % 90000)
   };
 }
@@ -534,7 +591,7 @@ async function batchExecute(session, rpcId, payload, fetchImpl) {
     rpcids: rpcId,
     _reqid: String(reqId),
     rt: "c",
-    "source-path": "/app"
+    "source-path": session.sourcePath ?? "/app"
   });
 
   if (session.buildLabel) {
@@ -552,7 +609,11 @@ async function batchExecute(session, rpcId, payload, fetchImpl) {
     form.set("at", session.accessToken);
   }
 
-  const response = await fetchImpl(`${BATCH_EXECUTE_URL}?${params.toString()}`, {
+  const endpoint = session.usePageFetch
+    ? `/_/BardChatUi/data/batchexecute?${params.toString()}`
+    : `${BATCH_EXECUTE_URL}?${params.toString()}`;
+
+  const response = await fetchImpl(endpoint, {
     method: "POST",
     ...buildAuthFetchOptions(session.cookieHeader, {
       "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",

@@ -5,6 +5,8 @@ import {
   classifyGeminiTurn,
   classifyGeminiTurnFromRaw,
   extractGeminiSessionTokens,
+  normalizeGeminiInitUrl,
+  normalizeGeminiSourcePath,
   parseGeminiChatListResponse,
   parseGeminiTurnCountsFromChatResponse,
   parseGeminiUsageCounts
@@ -14,6 +16,14 @@ test("classifyGeminiTurn maps pro and thinking buckets", () => {
   assert.equal(classifyGeminiTurn("e6fa609c3fa255c0", false), "pro");
   assert.equal(classifyGeminiTurn("fbb127bbb056c959", true), "thinking");
   assert.equal(classifyGeminiTurn("fbb127bbb056c959", false), "flash");
+});
+
+test("normalizeGeminiInitUrl keeps account-specific app paths", () => {
+  assert.equal(
+    normalizeGeminiInitUrl("https://gemini.google.com/u/1/app?pageId=none"),
+    "https://gemini.google.com/u/1/app?pageId=none"
+  );
+  assert.equal(normalizeGeminiSourcePath("https://gemini.google.com/u/1/app"), "/u/1/app");
 });
 
 test("extractGeminiSessionTokens reads embedded init tokens", () => {

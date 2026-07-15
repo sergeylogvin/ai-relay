@@ -17,6 +17,10 @@ test("popup exposes Claude usage panel and refresh action", async () => {
     resolve(root, "apps/browser/src/chatgpt-usage-client.js"),
     "utf8"
   );
+  const usageTabBridge = await readFile(
+    resolve(root, "apps/browser/src/usage-tab-bridge.js"),
+    "utf8"
+  );
   const geminiClient = await readFile(
     resolve(root, "apps/browser/src/gemini-usage-client.js"),
     "utf8"
@@ -30,6 +34,8 @@ test("popup exposes Claude usage panel and refresh action", async () => {
   assert.match(popup, /refreshGeminiUsage/);
   assert.match(chatgptClient, /fetchProviderUsageFromTab/);
   assert.match(geminiClient, /fetchProviderUsageFromTab/);
+  assert.match(usageTabBridge, /runGeminiUsageFetchInMainWorld/);
+  assert.match(usageTabBridge, /world: "MAIN"/);
   assert.match(contentScript, /AI_RELAY_FETCH_CHATGPT_USAGE/);
   assert.match(contentScript, /AI_RELAY_FETCH_GEMINI_USAGE/);
   assert.match(popup, /syncUsageSnapshotToDesktop/);

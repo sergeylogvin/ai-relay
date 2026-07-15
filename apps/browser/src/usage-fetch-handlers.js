@@ -17,7 +17,9 @@ export async function handleUsageFetchMessage(type) {
 
     return {
       ok: true,
-      usage: await fetchGeminiUsageInPageContext()
+      usage: await fetchGeminiUsageInPageContext({
+        initUrl: window.location.href
+      })
     };
   }
 
