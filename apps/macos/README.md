@@ -87,10 +87,15 @@ Manual fallback:
 
 ### Manual desktop copy
 
-**Copy for Desktop** stores the handoff, copies it to the clipboard, and auto-pastes when you switch to ChatGPT desktop or Cowork.
+**Copy for Desktop** stores the handoff, copies it to the clipboard, and auto-pastes when you switch to ChatGPT desktop or Claude Desktop (Cowork).
 
 Manual fallback: **Cmd+Shift+V** or **Cmd+V**.
 
+Detected desktop targets:
+
+- ChatGPT desktop (`com.openai.chat`, app name contains "ChatGPT")
+- Claude Desktop / Cowork (`com.anthropic.claudefordesktop`, app name "Claude")
+
 ## Next steps
 
-- Detect Claude Cowork desktop app for auto-paste
+- Richer handoff extraction and provider limit refinements
