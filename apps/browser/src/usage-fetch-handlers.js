@@ -24,10 +24,9 @@ export async function handleUsageFetchMessage(type) {
   }
 
   if (type === "AI_RELAY_GEMINI_EXTRACT_TOKENS") {
-    const {
-      extractGeminiSessionTokens,
-      normalizeGeminiSourcePath
-    } = await import(chrome.runtime.getURL("core/gemini-usage.js"));
+    const { extractGeminiSessionTokens } = await import(
+      chrome.runtime.getURL("core/gemini-usage.js")
+    );
 
     const html = document.documentElement?.innerHTML ?? "";
     const tokens = extractGeminiSessionTokens(html);
@@ -35,7 +34,9 @@ export async function handleUsageFetchMessage(type) {
     return {
       ok: true,
       tokens,
-      sourcePath: normalizeGeminiSourcePath(window.location.href)
+      sourcePath: "/app",
+      pageUrl: window.location.href,
+      language: document.documentElement.lang?.split("-")[0] || "en"
     };
   }
 

@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
+  buildGeminiListChatsPayload,
   classifyGeminiTurn,
   classifyGeminiTurnFromRaw,
   extractGeminiSessionTokens,
@@ -16,6 +17,10 @@ test("classifyGeminiTurn maps pro and thinking buckets", () => {
   assert.equal(classifyGeminiTurn("e6fa609c3fa255c0", false), "pro");
   assert.equal(classifyGeminiTurn("fbb127bbb056c959", true), "thinking");
   assert.equal(classifyGeminiTurn("fbb127bbb056c959", false), "flash");
+});
+
+test("buildGeminiListChatsPayload uses current Gemini list RPC shape", () => {
+  assert.equal(buildGeminiListChatsPayload(100), "[100,null,[0,null,1]]");
 });
 
 test("normalizeGeminiInitUrl keeps account-specific app paths", () => {

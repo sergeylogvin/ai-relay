@@ -7,6 +7,27 @@ const INIT_URL = `${GEMINI_ORIGIN}/app`;
 
 const RPC_LIST_CHATS = "MaZiqc";
 const RPC_READ_CHAT = "hNvQHb";
+const GEMINI_BATCH_SOURCE_PATH = "/app";
+
+export function buildGeminiListChatsPayload(limit = 100) {
+  return `[${limit},null,[0,null,1]]`;
+}
+
+export function buildGeminiListChatsPayloadFallbacks(limit = 100) {
+  return [
+    buildGeminiListChatsPayload(limit),
+    `[${limit}]`,
+    `[50,null,[0,null,1]]`,
+    "[50]"
+  ];
+}
+
+export function normalizeGeminiToken(value) {
+  return String(value ?? "")
+    .replace(/\\u003d/gi, "=")
+    .replace(/\\u0026/gi, "&")
+    .replace(/\\"/g, '"');
+}
 
 const PRO_ONLY_VARIANTS = new Set([
   "9d8ca3786ebdfbea",
@@ -145,18 +166,21 @@ export function parseGeminiUsageCounts(
 }
 
 export function extractGeminiSessionTokens(html) {
-  const accessToken =
+  const accessToken = normalizeGeminiToken(
     SNlM0e_RE.exec(html)?.[1] ??
-    /SNlM0e\\":\\"(.*?)\\"/.exec(html)?.[1] ??
-    "";
-  const buildLabel =
+      /SNlM0e\\":\\"(.*?)\\"/.exec(html)?.[1] ??
+      ""
+  );
+  const buildLabel = normalizeGeminiToken(
     CFB2H_RE.exec(html)?.[1] ??
-    /cfb2h\\":\\"(.*?)\\"/.exec(html)?.[1] ??
-    "";
-  const sessionId =
+      /cfb2h\\":\\"(.*?)\\"/.exec(html)?.[1] ??
+      ""
+  );
+  const sessionId = normalizeGeminiToken(
     FDRFJE_RE.exec(html)?.[1] ??
-    /FdrFJe\\":\\"(.*?)\\"/.exec(html)?.[1] ??
-    "";
+      /FdrFJe\\":\\"(.*?)\\"/.exec(html)?.[1] ??
+      ""
+  );
 
   return {
     accessToken,
@@ -415,12 +439,15 @@ function looksLikeAuthFailure(text) {
   return text.includes("accounts.google.com") || text.includes("<html");
 }
 
-function buildBatchExecuteBody(rpcId, payload) {
+function buildGeminiBatchForm(rpcId, payload) {
   const payloadQuoted = JSON.stringify(payload);
-  const serialized = `[[["${rpcId}",${payloadQuoted},null,"generic"]]]`;
-  const params = new URLSearchParams();
-  params.set("f.req", serialized);
-  return params.toString();
+  const form = new URLSearchParams();
+  form.set("f.req", `[[["${rpcId}",${payloadQuoted},null,"generic"]]]`);
+  return form;
+}
+
+function buildBatchExecuteBody(rpcId, payload) {
+  return buildGeminiBatchForm(rpcId, payload).toString();
 }
 
 function buildAuthFetchOptions(cookieHeader, headers = {}) {
@@ -590,7 +617,9 @@ async function initGeminiSession(cookieHeader, fetchImpl, { initUrl = INIT_URL, 
   return {
     ...tokens,
     cookieHeader,
-    sourcePath,
+    sourcePath: GEMINI_BATCH_SOURCE_PATH,
+    pageUrl: initUrl,
+    language: "en",
     usePageFetch,
     reqId: 10000 + Math.floor(Date.now() % 90000)
   };
@@ -604,7 +633,8 @@ async function batchExecute(session, rpcId, payload, fetchImpl) {
     rpcids: rpcId,
     _reqid: String(reqId),
     rt: "c",
-    "source-path": session.sourcePath ?? "/app"
+    "source-path": session.sourcePath ?? GEMINI_BATCH_SOURCE_PATH,
+    hl: session.language ?? "en"
   });
 
   if (session.buildLabel) {
@@ -631,7 +661,7 @@ async function batchExecute(session, rpcId, payload, fetchImpl) {
     ...buildAuthFetchOptions(session.cookieHeader, {
       "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
       Origin: GEMINI_ORIGIN,
-      Referer: `${GEMINI_ORIGIN}/`,
+      Referer: session.pageUrl ?? `${GEMINI_ORIGIN}/`,
       "User-Agent":
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
       "X-Same-Domain": "1"
@@ -647,11 +677,32 @@ async function batchExecute(session, rpcId, payload, fetchImpl) {
 }
 
 async function listGeminiChats(session, fetchImpl, limit) {
-  const raw = await batchExecute(session, RPC_LIST_CHATS, `[${limit}]`, fetchImpl);
-  return {
-    raw,
-    items: parseGeminiChatListResponse(raw)
-  };
+  const payloads = buildGeminiListChatsPayloadFallbacks(limit);
+  let lastError = null;
+
+  for (const payload of payloads) {
+    try {
+      const raw = await batchExecute(session, RPC_LIST_CHATS, payload, fetchImpl);
+
+      if (looksLikeAuthFailure(raw)) {
+        return { raw, items: [] };
+      }
+
+      const items = parseGeminiChatListResponse(raw);
+
+      if (items.length > 0 || raw.trim().length > 0) {
+        return { raw, items };
+      }
+    } catch (error) {
+      lastError = error;
+    }
+  }
+
+  if (lastError) {
+    throw lastError;
+  }
+
+  return { raw: "", items: [] };
 }
 
 async function countGeminiTurnsInChat(session, cid, sinceUnixSeconds, fetchImpl) {

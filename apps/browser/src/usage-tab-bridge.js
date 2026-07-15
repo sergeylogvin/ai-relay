@@ -1,5 +1,5 @@
 import { sendTabMessage } from "./content-script-bridge.js";
-import { parseGeminiUsageCounts } from "./core/gemini-usage.js";
+import { parseGeminiUsageCounts, buildGeminiListChatsPayloadFallbacks } from "./core/gemini-usage.js";
 import { normalizeProviderUsage } from "./core/usage-snapshot.js";
 
 const PROVIDER_TAB_PATTERNS = Object.freeze({
@@ -13,7 +13,15 @@ const PROVIDER_FETCH_MESSAGES = Object.freeze({
 });
 
 async function geminiMainWorldUsageRunner(context) {
-  const { accessToken, buildLabel, sessionId, sourcePath } = context ?? {};
+  const {
+    accessToken,
+    buildLabel,
+    sessionId,
+    sourcePath = "/app",
+    pageUrl,
+    language = "en",
+    listChatPayloads = ["[100,null,[0,null,1]]", "[100]", "[50,null,[0,null,1]]", "[50]"]
+  } = context ?? {};
 
   if (!accessToken && !buildLabel) {
     return {
@@ -23,6 +31,7 @@ async function geminiMainWorldUsageRunner(context) {
   }
 
   const userAgent = navigator.userAgent;
+  const referer = pageUrl || location.href;
   let reqId = 10000 + Math.floor(Date.now() % 90000);
 
   async function batchExecute(rpcId, payload) {
@@ -32,7 +41,8 @@ async function geminiMainWorldUsageRunner(context) {
       rpcids: rpcId,
       _reqid: String(reqId),
       rt: "c",
-      "source-path": sourcePath || "/app"
+      "source-path": sourcePath,
+      hl: language
     });
 
     if (buildLabel) {
@@ -51,18 +61,21 @@ async function geminiMainWorldUsageRunner(context) {
       form.set("at", accessToken);
     }
 
-    const response = await fetch(`/_/BardChatUi/data/batchexecute?${params.toString()}`, {
-      method: "POST",
-      credentials: "include",
-      headers: {
-        "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-        Origin: location.origin,
-        Referer: `${location.origin}/`,
-        "User-Agent": userAgent,
-        "X-Same-Domain": "1"
-      },
-      body: form.toString()
-    });
+    const response = await fetch(
+      `https://gemini.google.com/_/BardChatUi/data/batchexecute?${params.toString()}`,
+      {
+        method: "POST",
+        credentials: "include",
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
+          Origin: location.origin,
+          Referer: referer,
+          "User-Agent": userAgent,
+          "X-Same-Domain": "1"
+        },
+        body: form.toString()
+      }
+    );
 
     if (!response.ok) {
       throw new Error(`Gemini batchexecute failed (${response.status}).`);
@@ -272,8 +285,27 @@ async function geminiMainWorldUsageRunner(context) {
 
   try {
     const sinceUnixSeconds = Math.floor(getStartOfPacificDay().getTime() / 1000);
-    const listRaw = await batchExecute("MaZiqc", `[100]`);
-    const chats = parseChatList(listRaw);
+    let listRaw = "";
+    let chats = [];
+    let lastListError = null;
+
+    for (const payload of listChatPayloads) {
+      try {
+        listRaw = await batchExecute("MaZiqc", payload);
+        chats = parseChatList(listRaw);
+
+        if (chats.length > 0 || listRaw.trim().length > 0) {
+          break;
+        }
+      } catch (error) {
+        lastListError = error;
+      }
+    }
+
+    if (!listRaw && lastListError) {
+      throw lastListError;
+    }
+
     const totals = { pro: 0, thinking: 0, flash: 0 };
     let scanned = 0;
 
@@ -403,7 +435,10 @@ async function fetchGeminiUsageFromMainWorld(tabId) {
           accessToken,
           buildLabel,
           sessionId,
-          sourcePath: tokenResponse.sourcePath ?? "/app"
+          sourcePath: tokenResponse.sourcePath ?? "/app",
+          pageUrl: tokenResponse.pageUrl ?? tab.url,
+          language: tokenResponse.language ?? "en",
+          listChatPayloads: buildGeminiListChatsPayloadFallbacks(100)
         }
       ]
     });
