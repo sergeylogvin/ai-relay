@@ -13,12 +13,18 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
         target: nil,
         action: nil
     )
+    private let pasteHotkeyCheckbox = NSButton(
+        checkboxWithTitle: "Enable paste hotkey (Cmd+Shift+V)",
+        target: nil,
+        action: nil
+    )
 
-    init(store: HandoffStore) {
+    init(store: HandoffStore, hotkeyController: GlobalPasteHotkeyController) {
         self.store = store
+        self.hotkeyController = hotkeyController
 
         let window = NSWindow(
-            contentRect: NSRect(x: 0, y: 0, width: 380, height: 310),
+            contentRect: NSRect(x: 0, y: 0, width: 380, height: 340),
             styleMask: [.titled, .closable, .miniaturizable],
             backing: .buffered,
             defer: false
@@ -33,6 +39,8 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
         configureContent()
         refresh()
     }
+
+    private let hotkeyController: GlobalPasteHotkeyController
 
     @available(*, unavailable)
     required init?(coder: NSCoder) {
@@ -50,6 +58,7 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
         pasteButton.isEnabled = hasHandoff
         clearButton.isEnabled = hasHandoff
         launchAtLoginCheckbox.state = LaunchAtLoginController.isEnabled() ? .on : .off
+        pasteHotkeyCheckbox.state = hotkeyController.isEnabled ? .on : .off
     }
 
     func showPanel() {
@@ -62,6 +71,22 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
         NSApp.activate(ignoringOtherApps: true)
         window.makeKeyAndOrderFront(nil)
         window.orderFrontRegardless()
+    }
+
+    func showAccessibilityAlert() {
+        let alert = NSAlert()
+        alert.messageText = "Accessibility permission required"
+        alert.informativeText =
+            "AI Relay needs Accessibility access to paste into Cowork, Cursor, or ChatGPT desktop. Enable AI Relay in System Settings → Privacy & Security → Accessibility."
+        alert.addButton(withTitle: "Open Settings")
+        alert.addButton(withTitle: "Not now")
+
+        if alert.runModal() == .alertFirstButtonReturn {
+            AutoPasteController.openAccessibilitySettings()
+        }
+
+        AutoPasteController.requestAccessibilityPermission()
+        statusField.stringValue = "Enable Accessibility for AI Relay, then try Paste again."
     }
 
     func windowShouldClose(_ sender: NSWindow) -> Bool {
@@ -79,28 +104,40 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
     }
 
     @objc private func pasteHandoff() {
-        guard store.copyToClipboard() else {
-            statusField.stringValue = "No handoff is available to paste."
-            return
+        HandoffPasteService.pasteFromWindow(store: store, window: window) { [weak self] result in
+            self?.applyPasteResult(result, hotkey: false)
         }
+    }
 
-        guard AutoPasteController.isTrusted() else {
-            showAccessibilityAlert()
-            return
-        }
-
-        window?.orderOut(nil)
-        NSApp.hide(nil)
-
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.2) { [weak self] in
-            switch AutoPasteController.pasteIntoFrontmostApp() {
-            case .success:
-                self?.statusField.stringValue = "Pasted into the front app."
-            case .failure(.accessibilityRequired):
-                self?.showAccessibilityAlert()
-            case .failure(.eventFailed):
-                self?.statusField.stringValue = "Paste failed. Copy the handoff and use Cmd+V manually."
+    func applyPasteResult(_ result: HandoffPasteResult, hotkey: Bool) {
+        switch result {
+        case .pasted:
+            if hotkey {
+                return
             }
+
+            statusField.stringValue = "Pasted into the front app."
+        case .noHandoff:
+            if hotkey {
+                NSSound.beep()
+                return
+            }
+
+            statusField.stringValue = "No handoff is available to paste."
+        case .accessibilityRequired:
+            if hotkey {
+                showAccessibilityAlert()
+                return
+            }
+
+            showAccessibilityAlert()
+        case .eventFailed:
+            if hotkey {
+                NSSound.beep()
+                return
+            }
+
+            statusField.stringValue = "Paste failed. Copy the handoff and use Cmd+V manually."
         }
     }
 
@@ -128,20 +165,11 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
         }
     }
 
-    private func showAccessibilityAlert() {
-        let alert = NSAlert()
-        alert.messageText = "Accessibility permission required"
-        alert.informativeText =
-            "AI Relay needs Accessibility access to paste into Cowork, Cursor, or ChatGPT desktop. Enable AI Relay in System Settings → Privacy & Security → Accessibility."
-        alert.addButton(withTitle: "Open Settings")
-        alert.addButton(withTitle: "Not now")
-
-        if alert.runModal() == .alertFirstButtonReturn {
-            AutoPasteController.openAccessibilitySettings()
-        }
-
-        AutoPasteController.requestAccessibilityPermission()
-        statusField.stringValue = "Enable Accessibility for AI Relay, then try Paste again."
+    @objc private func togglePasteHotkey() {
+        hotkeyController.isEnabled = pasteHotkeyCheckbox.state == .on
+        statusField.stringValue = hotkeyController.isEnabled
+            ? "Paste hotkey enabled: Cmd+Shift+V"
+            : "Paste hotkey disabled."
     }
 
     private func configureContent() {
@@ -173,6 +201,9 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
         launchAtLoginCheckbox.target = self
         launchAtLoginCheckbox.action = #selector(toggleLaunchAtLogin)
 
+        pasteHotkeyCheckbox.target = self
+        pasteHotkeyCheckbox.action = #selector(togglePasteHotkey)
+
         let actionRow = NSStackView(views: [copyButton, pasteButton])
         actionRow.orientation = .horizontal
         actionRow.spacing = 8
@@ -188,7 +219,8 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
             statusField,
             actionRow,
             utilityRow,
-            launchAtLoginCheckbox
+            launchAtLoginCheckbox,
+            pasteHotkeyCheckbox
         ])
         stack.orientation = .vertical
         stack.alignment = .leading
@@ -204,20 +236,31 @@ final class HandoffPanelController: NSWindowController, NSWindowDelegate {
             titleField.widthAnchor.constraint(equalTo: stack.widthAnchor),
             statusField.widthAnchor.constraint(equalTo: stack.widthAnchor),
             actionRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
-            utilityRow.widthAnchor.constraint(equalTo: stack.widthAnchor)
+            utilityRow.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            pasteHotkeyCheckbox.widthAnchor.constraint(equalTo: stack.widthAnchor)
         ])
     }
 }
 
 final class AppDelegate: NSObject, NSApplicationDelegate {
     private let store = HandoffStore()
+    private let hotkeyController = GlobalPasteHotkeyController()
     private var panelController: HandoffPanelController?
     private var pollTimer: Timer?
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         InboxBridgeLauncher.ensureRunning()
 
-        panelController = HandoffPanelController(store: store)
+        panelController = HandoffPanelController(store: store, hotkeyController: hotkeyController)
+
+        hotkeyController.start { [weak self] in
+            guard let self, let panelController = self.panelController else {
+                return
+            }
+
+            let result = HandoffPasteService.pasteFromHotkey(store: self.store)
+            panelController.applyPasteResult(result, hotkey: true)
+        }
 
         if LaunchAtLoginController.shouldPresentWindowOnLaunch() {
             panelController?.showPanel()
@@ -235,5 +278,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     func applicationWillTerminate(_ notification: Notification) {
         pollTimer?.invalidate()
+        hotkeyController.stop()
     }
 }
