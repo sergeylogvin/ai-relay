@@ -1,4 +1,5 @@
 export const DESKTOP_NATIVE_HOST = "com.ai_relay.native_host";
+export const DESKTOP_INBOX_STORE_URL = "http://127.0.0.1:17831/handoff";
 
 function buildDesktopMessage(markdown, metadata = {}) {
   return {
@@ -12,6 +13,45 @@ function buildDesktopMessage(markdown, metadata = {}) {
   };
 }
 
+async function storeHandoffViaHttp(markdown, metadata = {}) {
+  const payload = buildDesktopMessage(markdown, metadata);
+
+  const response = await fetch(DESKTOP_INBOX_STORE_URL, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify(payload)
+  });
+
+  const body = await response.json();
+
+  if (!response.ok || !body?.ok) {
+    throw new Error(body?.error ?? `Desktop inbox HTTP sync failed (${response.status}).`);
+  }
+
+  return body;
+}
+
+async function sendDesktopHandoffMessage(type, markdown, metadata = {}) {
+  const payload = buildDesktopMessage(markdown, metadata);
+
+  if (!payload.markdown) {
+    throw new Error("No handoff Markdown is available.");
+  }
+
+  const response = await chrome.runtime.sendMessage({
+    type,
+    ...payload
+  });
+
+  if (!response) {
+    throw new Error("Desktop handoff bridge did not respond.");
+  }
+
+  return response;
+}
+
 export async function storeHandoffForDesktop(markdown, metadata = {}) {
   const payload = buildDesktopMessage(markdown, metadata);
 
@@ -20,23 +60,44 @@ export async function storeHandoffForDesktop(markdown, metadata = {}) {
   }
 
   try {
-    const response = await chrome.runtime.sendNativeMessage(
-      DESKTOP_NATIVE_HOST,
-      {
-        type: "STORE_HANDOFF",
-        ...payload
-      }
-    );
+    const response = await storeHandoffViaHttp(markdown, metadata);
 
     return {
       ...response,
       fallback: null
     };
-  } catch {
-    return {
-      ok: false,
-      fallback: "native-host-unavailable"
-    };
+  } catch (httpError) {
+    try {
+      const response = await sendDesktopHandoffMessage(
+        "AI_RELAY_STORE_HANDOFF",
+        markdown,
+        metadata
+      );
+
+      if (!response?.ok) {
+        return {
+          ok: false,
+          fallback: "desktop-bridge-unavailable",
+          error: response?.error ?? "Desktop sync failed."
+        };
+      }
+
+      return {
+        ...response,
+        fallback: "native-host"
+      };
+    } catch (nativeError) {
+      return {
+        ok: false,
+        fallback: "desktop-bridge-unavailable",
+        error:
+          nativeError instanceof Error
+            ? nativeError.message
+            : httpError instanceof Error
+              ? httpError.message
+              : String(nativeError)
+      };
+    }
   }
 }
 
@@ -48,12 +109,10 @@ export async function copyHandoffForDesktop(markdown, metadata = {}) {
   }
 
   try {
-    const response = await chrome.runtime.sendNativeMessage(
-      DESKTOP_NATIVE_HOST,
-      {
-        type: "COPY_HANDOFF",
-        ...payload
-      }
+    const response = await sendDesktopHandoffMessage(
+      "AI_RELAY_COPY_FOR_DESKTOP",
+      markdown,
+      metadata
     );
 
     if (!response?.ok) {
@@ -65,12 +124,24 @@ export async function copyHandoffForDesktop(markdown, metadata = {}) {
       fallback: null
     };
   } catch {
-    await navigator.clipboard.writeText(payload.markdown);
+    try {
+      const response = await storeHandoffViaHttp(markdown, metadata);
 
-    return {
-      ok: true,
-      characters: payload.markdown.length,
-      fallback: "clipboard"
-    };
+      await navigator.clipboard.writeText(payload.markdown);
+
+      return {
+        ...response,
+        characters: payload.markdown.length,
+        fallback: "clipboard"
+      };
+    } catch {
+      await navigator.clipboard.writeText(payload.markdown);
+
+      return {
+        ok: true,
+        characters: payload.markdown.length,
+        fallback: "clipboard"
+      };
+    }
   }
 }

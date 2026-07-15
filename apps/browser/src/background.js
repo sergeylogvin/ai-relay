@@ -1,6 +1,23 @@
 import { continueInProvider } from "./continue-in-provider.js";
 import { DESKTOP_NATIVE_HOST } from "./desktop-handoff.js";
 
+async function dispatchNativeHandoff(type, payload) {
+  const response = await chrome.runtime.sendNativeMessage(
+    DESKTOP_NATIVE_HOST,
+    {
+      type,
+      markdown: payload.markdown,
+      metadata: payload.metadata ?? {}
+    }
+  );
+
+  if (!response?.ok) {
+    throw new Error(response?.error ?? "Desktop handoff bridge failed.");
+  }
+
+  return response;
+}
+
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message?.type === "AI_RELAY_CONTINUE_IN_PROVIDER") {
     (async () => {
@@ -25,20 +42,30 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     return true;
   }
 
+  if (message?.type === "AI_RELAY_STORE_HANDOFF") {
+    (async () => {
+      try {
+        const response = await dispatchNativeHandoff("STORE_HANDOFF", message);
+
+        sendResponse({
+          ok: true,
+          ...response
+        });
+      } catch (error) {
+        sendResponse({
+          ok: false,
+          error: error instanceof Error ? error.message : String(error)
+        });
+      }
+    })();
+
+    return true;
+  }
+
   if (message?.type === "AI_RELAY_COPY_FOR_DESKTOP") {
     (async () => {
       try {
-        const response = await chrome.runtime.sendNativeMessage(
-          DESKTOP_NATIVE_HOST,
-          {
-            type: "COPY_HANDOFF",
-            markdown: message.handoffMarkdown
-          }
-        );
-
-        if (!response?.ok) {
-          throw new Error(response?.error ?? "Desktop copy failed.");
-        }
+        const response = await dispatchNativeHandoff("COPY_HANDOFF", message);
 
         sendResponse({
           ok: true,

@@ -15,7 +15,8 @@
   "host_permissions": [
     "https://claude.ai/*",
     "https://chatgpt.com/*",
-    "https://gemini.google.com/*"
+    "https://gemini.google.com/*",
+    "http://127.0.0.1:17831/*"
   ],
   "action": {
     "default_title": "AI Relay",

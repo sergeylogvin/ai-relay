@@ -12,12 +12,10 @@ struct HandoffRecord: Codable {
     let markdown: String
 }
 
-@MainActor
 final class HandoffStore: ObservableObject {
     @Published private(set) var handoff: HandoffRecord?
 
     private let inboxURL: URL
-    private var pollTimer: Timer?
 
     init(inboxURL: URL? = nil) {
         if let inboxURL {
@@ -29,11 +27,24 @@ final class HandoffStore: ObservableObject {
         }
 
         reload()
-        startPolling()
     }
 
-    deinit {
-        pollTimer?.invalidate()
+    var menuBarLabel: String {
+        guard let handoff else {
+            return "AI Relay"
+        }
+
+        let title = handoff.title.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        if title.isEmpty {
+            return "AI Relay"
+        }
+
+        if title.count <= 28 {
+            return title
+        }
+
+        return String(title.prefix(25)) + "..."
     }
 
     var menuTitle: String {
@@ -46,11 +57,25 @@ final class HandoffStore: ObservableObject {
 
     var statusLine: String {
         guard let handoff else {
-            return "Capture in the browser extension to sync a handoff."
+            return "Waiting for Capture in the browser extension."
         }
 
         let mode = handoff.handoffMode ?? "handoff"
-        return "\(handoff.provider) · \(mode) · \(handoff.characters) chars"
+        let syncedAt = formatStoredAt(handoff.storedAt)
+        return "\(handoff.provider) · \(mode) · \(handoff.characters) chars · synced \(syncedAt)"
+    }
+
+    private func formatStoredAt(_ isoDate: String) -> String {
+        let parser = ISO8601DateFormatter()
+        parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+
+        guard let date = parser.date(from: isoDate) ?? ISO8601DateFormatter().date(from: isoDate) else {
+            return "recently"
+        }
+
+        let formatter = RelativeDateTimeFormatter()
+        formatter.unitsStyle = .short
+        return formatter.localizedString(for: date, relativeTo: Date())
     }
 
     func reload() {
@@ -87,13 +112,5 @@ final class HandoffStore: ObservableObject {
     func clearInbox() {
         try? FileManager.default.removeItem(at: inboxURL)
         handoff = nil
-    }
-
-    private func startPolling() {
-        pollTimer = Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { [weak self] _ in
-            Task { @MainActor in
-                self?.reload()
-            }
-        }
     }
 }
