@@ -44,10 +44,17 @@ Keep the menu bar app running in the background. After each browser capture, the
 ### Browser → desktop
 
 1. Capture a conversation in the browser extension.
-2. Open the menu bar app.
-3. Click **Copy handoff**.
-4. Switch to Cowork, ChatGPT desktop, or Cursor.
-5. Paste with `Cmd+V`.
+2. Switch to Cowork, ChatGPT desktop, or Cursor and focus the chat input.
+3. Open the AI Relay window from the Dock.
+4. Click **Paste into front app**.
+
+The app copies the handoff, hides itself, and sends `Cmd+V` to the front app. The first time, macOS asks for **Accessibility** permission.
+
+Manual fallback:
+
+1. Open the AI Relay window.
+2. Click **Copy handoff**.
+3. Switch to the target app and press `Cmd+V`.
 
 ### Cursor workflow
 
@@ -62,5 +69,4 @@ If the native host is not installed, the extension falls back to the normal brow
 ## Next steps
 
 - Launch the menu bar app automatically at login
-- Optional auto-paste into the frontmost app via Accessibility APIs
 - Limit awareness in the browser popup

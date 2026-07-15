@@ -99,14 +99,14 @@ final class HandoffStore: ObservableObject {
         }
     }
 
-    func copyToClipboard() {
+    func copyToClipboard() -> Bool {
         guard let markdown = handoff?.markdown else {
-            return
+            return false
         }
 
         let pasteboard = NSPasteboard.general
         pasteboard.clearContents()
-        pasteboard.setString(markdown, forType: .string)
+        return pasteboard.setString(markdown, forType: .string)
     }
 
     func clearInbox() {
