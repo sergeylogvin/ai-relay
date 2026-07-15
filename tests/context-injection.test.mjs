@@ -143,6 +143,55 @@ test("preserves Markdown line breaks in a contenteditable composer", () => {
   );
 });
 
+test("prefers execCommand for ProseMirror-style contenteditable composers", () => {
+  const composer = createComposer({
+    tagName: "DIV",
+    contentEditable: true
+  });
+  let execCommandText = null;
+
+  composer.ownerDocument = {
+    createRange() {
+      return {
+        selectNodeContents() {},
+        collapse() {}
+      };
+    },
+    execCommand(_command, _showDefaultUI, text) {
+      execCommandText = text;
+      composer.textContent = text;
+      return true;
+    }
+  };
+
+  const root = {
+    querySelector: () => composer,
+    getSelection: () => ({
+      removeAllRanges() {},
+      addRange() {}
+    }),
+    defaultView: {
+      InputEvent: class extends Event {
+        constructor(type, init) {
+          super(type, init);
+          this.inputType = init?.inputType;
+          this.data = init?.data;
+        }
+      }
+    }
+  };
+
+  insertContextIntoComposer({
+    providerId: "chatgpt",
+    root,
+    selectors: ['[contenteditable="true"]'],
+    context: "# Handoff\n\nContinue here."
+  });
+
+  assert.equal(execCommandText, "# Handoff\n\nContinue here.");
+  assert.equal(composer.textContent, "# Handoff\n\nContinue here.");
+});
+
 test("rejects missing composers and empty context", () => {
   assert.throws(
     () =>

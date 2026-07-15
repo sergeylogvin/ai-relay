@@ -26,9 +26,10 @@ export const CHATGPT_SELECTORS = Object.freeze({
   ]),
   composer: Object.freeze([
     '#prompt-textarea[contenteditable="true"]',
+    'div.ProseMirror[contenteditable="true"]',
+    '[data-testid="composer"] [contenteditable="true"]',
     'textarea#prompt-textarea',
     'textarea[data-testid="prompt-textarea"]',
-    '[data-testid="composer"] [contenteditable="true"]',
     'main form textarea'
   ])
 });
