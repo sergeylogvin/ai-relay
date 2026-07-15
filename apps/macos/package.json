@@ -5,6 +5,7 @@
   "description": "macOS companion application for AI Relay.",
   "license": "Apache-2.0",
   "scripts": {
-    "install-native-host": "node scripts/install-native-host.mjs"
+    "install-native-host": "node scripts/install-native-host.mjs",
+    "build-menu-bar": "bash scripts/build-menu-bar.sh"
   }
 }

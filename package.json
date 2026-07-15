@@ -13,6 +13,7 @@
     "build:browser": "node scripts/build-browser.mjs",
     "validate:browser-release": "node scripts/validate-browser-release.mjs",
     "package:browser": "npm run build:browser && npm run validate:browser-release && node scripts/package-browser-release.mjs",
-    "install:macos-native-host": "node apps/macos/scripts/install-native-host.mjs"
+    "install:macos-native-host": "node apps/macos/scripts/install-native-host.mjs",
+    "build:macos-menu-bar": "bash apps/macos/scripts/build-menu-bar.sh"
   }
 }

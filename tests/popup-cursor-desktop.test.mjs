@@ -24,6 +24,8 @@ test("popup exposes Cursor and desktop copy actions", async () => {
   assert.match(html, /Continue in desktop apps/);
   assert.match(popup, /renderCursorContextPack/);
   assert.match(popup, /copyHandoffForDesktop/);
+  assert.match(popup, /storeHandoffForDesktop/);
+  assert.match(popup, /syncDesktopHandoff/);
   assert.match(popup, /Cursor context pack copied/);
   assert.match(manifest, /nativeMessaging/);
 });
@@ -47,8 +49,15 @@ test("macOS native host install script and host entrypoint exist", async () => {
     resolve(root, "apps/macos/native-host/ai-relay-host.mjs"),
     "utf8"
   );
+  const inbox = await readFile(
+    resolve(root, "apps/macos/shared/handoff-inbox.mjs"),
+    "utf8"
+  );
 
   assert.match(readme, /install-native-host/);
+  assert.match(readme, /build-menu-bar/);
   assert.match(host, /COPY_HANDOFF/);
+  assert.match(host, /STORE_HANDOFF/);
+  assert.match(inbox, /pending-handoff\.json/);
   assert.match(host, /pbcopy/);
 });
