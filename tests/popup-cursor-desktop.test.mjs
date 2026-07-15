@@ -77,5 +77,18 @@ test("macOS native host install script and host entrypoint exist", async () => {
   assert.match(inbox, /pending-handoff\.json/);
   assert.match(host, /pbcopy/);
   assert.match(host, /persistHandoffWithOptionalPasteRequest/);
-  assert.match(readme, /auto-pastes when you switch to ChatGPT desktop or Cowork/);
+  assert.match(readme, /auto-pastes when you switch to ChatGPT desktop or Claude Desktop \(Cowork\)/);
+  assert.match(readme, /com\.anthropic\.claudefordesktop/);
+});
+
+test("macOS paste monitor detects ChatGPT and Claude desktop apps", async () => {
+  const monitor = await readFile(
+    resolve(root, "apps/macos/MenuBar/Sources/AIRelayMenuBar/PasteRequestMonitor.swift"),
+    "utf8"
+  );
+
+  assert.match(monitor, /isDesktopHandoffApp/);
+  assert.match(monitor, /isClaudeDesktopApp/);
+  assert.match(monitor, /anthropic\.claude/);
+  assert.match(monitor, /openai\.chat/);
 });

@@ -66,7 +66,7 @@ final class PasteRequestMonitor {
         case .cursor:
             return isCursorApp(app)
         case .chatgpt:
-            return isChatGPTApp(app)
+            return isDesktopHandoffApp(app)
         case .front:
             return !isAIRelayApp(app)
         }
@@ -84,13 +84,23 @@ final class PasteRequestMonitor {
         return bundleId.contains("cursor") || name == "cursor"
     }
 
-    private func isChatGPTApp(_ app: NSRunningApplication) -> Bool {
+    private func isDesktopHandoffApp(_ app: NSRunningApplication) -> Bool {
         let bundleId = app.bundleIdentifier?.lowercased() ?? ""
         let name = app.localizedName?.lowercased() ?? ""
 
+        return isChatGPTDesktopApp(bundleId: bundleId, name: name)
+            || isClaudeDesktopApp(bundleId: bundleId, name: name)
+    }
+
+    private func isChatGPTDesktopApp(bundleId: String, name: String) -> Bool {
         return bundleId.contains("chatgpt")
             || bundleId.contains("openai.chat")
             || name.contains("chatgpt")
+    }
+
+    private func isClaudeDesktopApp(bundleId: String, name: String) -> Bool {
+        return bundleId.contains("anthropic.claude")
+            || name == "claude"
     }
 
     private func isAIRelayApp(_ app: NSRunningApplication) -> Bool {
