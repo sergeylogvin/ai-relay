@@ -25,11 +25,13 @@ test("popup exposes Cursor and desktop copy actions", async () => {
   assert.match(popup, /renderCursorContextPack/);
   assert.match(popup, /copyHandoffForDesktop/);
   assert.match(popup, /storeHandoffForDesktop/);
+  assert.match(popup, /targetApp: "cursor"/);
+  assert.match(popup, /pasteRequested: true/);
   assert.match(popup, /formatDesktopSyncStatus/);
   assert.match(popup, /Syncing to desktop app/);
   assert.match(popup, /Synced "/);
   assert.match(popup, /Click Capture to sync it to the desktop app/);
-  assert.match(popup, /Cursor context pack copied/);
+  assert.match(popup, /Switch to Cursor chat and it will paste automatically/);
   assert.match(manifest, /nativeMessaging/);
   assert.match(manifest, /127\.0\.0\.1:17831/);
 });

@@ -520,10 +520,26 @@ copyForCursorButton.addEventListener("click", async () => {
 
   try {
     const contextPack = renderCursorContextPackForCapture(lastCapture);
+    const metadata = {
+      ...buildDesktopHandoffMetadata(lastCapture),
+      handoffMode: "context-pack",
+      targetApp: "cursor",
+      pasteRequested: true
+    };
 
     await navigator.clipboard.writeText(contextPack);
+
+    const result = await storeHandoffForDesktop(contextPack, metadata);
+
+    if (result?.ok) {
+      setStatus(
+        "Cursor context pack ready. Switch to Cursor chat and it will paste automatically."
+      );
+      return;
+    }
+
     setStatus(
-      "Cursor context pack copied. Paste it into Cursor Agent chat with Cmd+V."
+      "Copied to clipboard. Paste manually in Cursor with Cmd+V."
     );
   } catch (error) {
     setStatus(
