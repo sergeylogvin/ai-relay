@@ -382,23 +382,37 @@ function buildBatchExecuteBody(rpcId, payload) {
   return params.toString();
 }
 
-export async function fetchGeminiUsageFromSession({
-  cookieHeader,
+function buildAuthFetchOptions(cookieHeader, headers = {}) {
+  if (cookieHeader) {
+    return {
+      headers: {
+        ...headers,
+        Cookie: cookieHeader
+      }
+    };
+  }
+
+  return {
+    headers,
+    credentials: "include"
+  };
+}
+
+export async function fetchGeminiUsageInPageContext(options = {}) {
+  return fetchGeminiUsageCore({
+    ...options,
+    cookieHeader: null
+  });
+}
+
+async function fetchGeminiUsageCore({
+  cookieHeader = null,
   fetchImpl = fetch,
   now = new Date(),
   proLimit = DEFAULT_PRO_LIMIT,
   thinkingLimit = DEFAULT_THINKING_LIMIT,
   chatLimit = 200
 } = {}) {
-  if (!cookieHeader) {
-    return normalizeProviderUsage({
-      provider: "gemini",
-      status: "error",
-      error: "Sign in to gemini.google.com in this browser profile.",
-      buckets: []
-    });
-  }
-
   try {
     const session = await initGeminiSession(cookieHeader, fetchImpl);
     const sinceUnixSeconds = Math.floor(getStartOfPacificDay(now).getTime() / 1000);
@@ -409,15 +423,6 @@ export async function fetchGeminiUsageFromSession({
         provider: "gemini",
         status: "error",
         error: "Gemini session expired. Open gemini.google.com and sign in again.",
-        buckets: []
-      });
-    }
-
-    if (chats.items.length === 0 && chats.raw.trim().length === 0) {
-      return normalizeProviderUsage({
-        provider: "gemini",
-        status: "error",
-        error: "Gemini usage unavailable. Open gemini.google.com and try again.",
         buckets: []
       });
     }
@@ -451,25 +456,57 @@ export async function fetchGeminiUsageFromSession({
   }
 }
 
-async function initGeminiSession(cookieHeader, fetchImpl) {
-  await fetchImpl(GOOGLE_ORIGIN, {
-    method: "GET",
-    headers: {
-      Cookie: cookieHeader,
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36"
-    }
-  });
+export async function fetchGeminiUsageFromSession({
+  cookieHeader,
+  fetchImpl = fetch,
+  now = new Date(),
+  proLimit = DEFAULT_PRO_LIMIT,
+  thinkingLimit = DEFAULT_THINKING_LIMIT,
+  chatLimit = 200
+} = {}) {
+  if (!cookieHeader) {
+    return normalizeProviderUsage({
+      provider: "gemini",
+      status: "error",
+      error: "Sign in to gemini.google.com in this browser profile.",
+      buckets: []
+    });
+  }
 
-  const response = await fetchImpl(INIT_URL, {
-    method: "GET",
-    headers: {
-      Cookie: cookieHeader,
-      "User-Agent":
-        "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
-      Referer: `${GEMINI_ORIGIN}/`
-    }
+  return fetchGeminiUsageCore({
+    cookieHeader,
+    fetchImpl,
+    now,
+    proLimit,
+    thinkingLimit,
+    chatLimit
   });
+}
+
+async function initGeminiSession(cookieHeader, fetchImpl) {
+  const userAgent =
+    "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36";
+
+  await fetchImpl(
+    GOOGLE_ORIGIN,
+    {
+      method: "GET",
+      ...buildAuthFetchOptions(cookieHeader, {
+        "User-Agent": userAgent
+      })
+    }
+  );
+
+  const response = await fetchImpl(
+    INIT_URL,
+    {
+      method: "GET",
+      ...buildAuthFetchOptions(cookieHeader, {
+        "User-Agent": userAgent,
+        Referer: `${GEMINI_ORIGIN}/`
+      })
+    }
+  );
 
   if (!response.ok) {
     throw new Error(`Gemini init failed (${response.status}).`);
@@ -517,15 +554,14 @@ async function batchExecute(session, rpcId, payload, fetchImpl) {
 
   const response = await fetchImpl(`${BATCH_EXECUTE_URL}?${params.toString()}`, {
     method: "POST",
-    headers: {
+    ...buildAuthFetchOptions(session.cookieHeader, {
       "Content-Type": "application/x-www-form-urlencoded;charset=UTF-8",
-      Cookie: session.cookieHeader ?? "",
       Origin: GEMINI_ORIGIN,
       Referer: `${GEMINI_ORIGIN}/`,
       "User-Agent":
         "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/144.0.0.0 Safari/537.36",
       "X-Same-Domain": "1"
-    },
+    }),
     body: form.toString()
   });
 

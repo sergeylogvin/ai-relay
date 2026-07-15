@@ -1,9 +1,11 @@
 import { fetchGeminiUsageFromSession } from "./core/gemini-usage.js";
+import { fetchProviderUsageFromTab } from "./usage-tab-bridge.js";
 
 const GEMINI_URLS = [
   "https://gemini.google.com/",
   "https://www.google.com/",
-  "https://google.com/"
+  "https://google.com/",
+  "https://accounts.google.com/"
 ];
 
 const GEMINI_COOKIE_NAMES = new Set([
@@ -18,8 +20,19 @@ const GEMINI_COOKIE_NAMES = new Set([
   "SAPISID"
 ]);
 
+function hasGeminiSessionCookie(seen) {
+  return seen.has("__Secure-1PSID") || seen.has("__Secure-3PSID");
+}
+
 export async function getGeminiCookieHeader() {
   const seen = new Map();
+  const domainCookies = await chrome.cookies.getAll({ domain: ".google.com" });
+
+  for (const cookie of domainCookies) {
+    if (GEMINI_COOKIE_NAMES.has(cookie.name)) {
+      seen.set(cookie.name, cookie.value);
+    }
+  }
 
   for (const url of GEMINI_URLS) {
     const cookies = await chrome.cookies.getAll({ url });
@@ -44,7 +57,7 @@ export async function getGeminiCookieHeader() {
     }
   }
 
-  if (!seen.has("__Secure-1PSID")) {
+  if (!hasGeminiSessionCookie(seen)) {
     return null;
   }
 
@@ -52,6 +65,12 @@ export async function getGeminiCookieHeader() {
 }
 
 export async function refreshGeminiUsage() {
+  const fromTab = await fetchProviderUsageFromTab("gemini");
+
+  if (fromTab) {
+    return fromTab;
+  }
+
   const cookieHeader = await getGeminiCookieHeader();
 
   return fetchGeminiUsageFromSession({ cookieHeader });

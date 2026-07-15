@@ -41,6 +41,7 @@ export {
 export {
   fetchChatGPTAccessToken,
   fetchChatGPTUsageFromSession,
+  fetchChatGPTUsageInPageContext,
   parseChatGPTUsageResponse
 } from "./chatgpt-usage.js";
 export {
@@ -49,6 +50,7 @@ export {
   extractGeminiSessionTokens,
   extractJsonFromBatchExecuteResponse,
   fetchGeminiUsageFromSession,
+  fetchGeminiUsageInPageContext,
   getNextPacificMidnightIso,
   getStartOfPacificDay,
   parseGeminiChatListResponse,

@@ -9,6 +9,18 @@ test("popup exposes Claude usage panel and refresh action", async () => {
   const html = await readFile(resolve(root, "apps/browser/src/popup.html"), "utf8");
   const popup = await readFile(resolve(root, "apps/browser/src/popup.js"), "utf8");
   const manifest = await readFile(resolve(root, "apps/browser/src/manifest.json"), "utf8");
+  const contentScript = await readFile(
+    resolve(root, "apps/browser/src/content-script.js"),
+    "utf8"
+  );
+  const chatgptClient = await readFile(
+    resolve(root, "apps/browser/src/chatgpt-usage-client.js"),
+    "utf8"
+  );
+  const geminiClient = await readFile(
+    resolve(root, "apps/browser/src/gemini-usage-client.js"),
+    "utf8"
+  );
 
   assert.match(html, /id="usagePanel"/);
   assert.match(html, /id="refreshUsageButton"/);
@@ -16,10 +28,15 @@ test("popup exposes Claude usage panel and refresh action", async () => {
   assert.match(popup, /refreshClaudeUsage/);
   assert.match(popup, /refreshChatGPTUsage/);
   assert.match(popup, /refreshGeminiUsage/);
+  assert.match(chatgptClient, /fetchProviderUsageFromTab/);
+  assert.match(geminiClient, /fetchProviderUsageFromTab/);
+  assert.match(contentScript, /AI_RELAY_FETCH_CHATGPT_USAGE/);
+  assert.match(contentScript, /AI_RELAY_FETCH_GEMINI_USAGE/);
   assert.match(popup, /syncUsageSnapshotToDesktop/);
   assert.match(popup, /usage-bar-fill/);
   assert.match(manifest, /"cookies"/);
   assert.match(manifest, /https:\/\/www\.google\.com\/\*/);
+  assert.match(manifest, /usage-fetch-handlers\.js/);
 });
 
 test("macOS companion includes usage snapshot store", async () => {

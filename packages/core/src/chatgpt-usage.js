@@ -83,6 +83,68 @@ export async function fetchChatGPTAccessToken(cookieHeader, fetchImpl = fetch) {
   return json.accessToken;
 }
 
+export async function fetchChatGPTUsageInPageContext({
+  fetchImpl = fetch,
+  now = new Date()
+} = {}) {
+  try {
+    const sessionResponse = await fetchImpl(`${CHATGPT_ORIGIN}/api/auth/session`, {
+      method: "GET",
+      headers: {
+        Accept: "application/json"
+      },
+      credentials: "include"
+    });
+
+    if (!sessionResponse.ok) {
+      return normalizeProviderUsage({
+        provider: "chatgpt",
+        status: "error",
+        error: `ChatGPT session request failed (${sessionResponse.status}). Keep chatgpt.com open and try Refresh again.`,
+        buckets: []
+      });
+    }
+
+    const session = await sessionResponse.json();
+
+    if (!session?.accessToken) {
+      return normalizeProviderUsage({
+        provider: "chatgpt",
+        status: "error",
+        error: "Sign in to chatgpt.com in this browser profile.",
+        buckets: []
+      });
+    }
+
+    const usageResponse = await fetchImpl(`${CHATGPT_ORIGIN}/backend-api/wham/usage`, {
+      method: "GET",
+      headers: {
+        Authorization: `Bearer ${session.accessToken}`,
+        Accept: "application/json"
+      },
+      credentials: "include"
+    });
+
+    if (!usageResponse.ok) {
+      return normalizeProviderUsage({
+        provider: "chatgpt",
+        status: "error",
+        error: `ChatGPT usage request failed (${usageResponse.status}).`,
+        buckets: []
+      });
+    }
+
+    return parseChatGPTUsageResponse(await usageResponse.json(), now);
+  } catch (error) {
+    return normalizeProviderUsage({
+      provider: "chatgpt",
+      status: "error",
+      error: error instanceof Error ? error.message : String(error),
+      buckets: []
+    });
+  }
+}
+
 export async function fetchChatGPTUsageFromSession({
   cookieHeader,
   fetchImpl = fetch,

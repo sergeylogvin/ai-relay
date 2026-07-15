@@ -1,4 +1,5 @@
 import { fetchChatGPTUsageFromSession } from "./core/chatgpt-usage.js";
+import { fetchProviderUsageFromTab } from "./usage-tab-bridge.js";
 
 const CHATGPT_URLS = ["https://chatgpt.com/", "https://www.chatgpt.com/"];
 
@@ -34,6 +35,12 @@ export async function getChatGPTCookieHeader() {
 }
 
 export async function refreshChatGPTUsage() {
+  const fromTab = await fetchProviderUsageFromTab("chatgpt");
+
+  if (fromTab) {
+    return fromTab;
+  }
+
   const cookieHeader = await getChatGPTCookieHeader();
 
   return fetchChatGPTUsageFromSession({ cookieHeader });

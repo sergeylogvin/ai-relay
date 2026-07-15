@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   fetchChatGPTUsageFromSession,
+  fetchChatGPTUsageInPageContext,
   parseChatGPTUsageResponse
 } from "../packages/core/src/chatgpt-usage.js";
 
@@ -79,4 +80,43 @@ test("fetchChatGPTUsageFromSession returns sign-in error without cookies", async
 
   assert.equal(record.status, "error");
   assert.match(record.error, /Sign in to chatgpt.com/i);
+});
+
+test("fetchChatGPTUsageInPageContext uses same-origin credentials", async () => {
+  const calls = [];
+
+  const fetchImpl = async (url, options = {}) => {
+    calls.push({ url, options });
+
+    if (url.endsWith("/api/auth/session")) {
+      return {
+        ok: true,
+        json: async () => ({ accessToken: "page-token" })
+      };
+    }
+
+    if (url.endsWith("/backend-api/wham/usage")) {
+      return {
+        ok: true,
+        json: async () => ({
+          rate_limit: {
+            primary_window: { used_percent: 44, reset_after_seconds: 1800 },
+            secondary_window: { used_percent: 8, reset_after_seconds: 3600 }
+          }
+        })
+      };
+    }
+
+    throw new Error(`Unexpected fetch: ${url}`);
+  };
+
+  const record = await fetchChatGPTUsageInPageContext({
+    fetchImpl,
+    now: new Date("2026-07-15T12:00:00.000Z")
+  });
+
+  assert.equal(record.status, "ok");
+  assert.equal(record.buckets[0].utilization, 44);
+  assert.equal(calls[0].options.credentials, "include");
+  assert.equal(calls[1].options.credentials, "include");
 });
