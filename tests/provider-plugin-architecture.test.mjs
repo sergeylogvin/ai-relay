@@ -5,7 +5,8 @@ import {
   DEFAULT_PROVIDER_PLUGINS,
   DuplicateProviderError,
   ProviderRegistry,
-  defineProviderPlugin
+  defineProviderPlugin,
+  validateProviderAdapter
 } from "../packages/providers/src/index.js";
 
 function createTestAdapter(id, hostname) {
@@ -98,5 +99,32 @@ test("invalid adapters are rejected at registration time", () => {
         createAdapter: () => ({ id: "broken" })
       }).createAdapter(),
     /must implement matches/
+  );
+});
+
+test("adapters that declare readLimits must implement readLimits()", () => {
+  assert.throws(
+    () =>
+      validateProviderAdapter({
+        id: "broken",
+        matches() {
+          return true;
+        },
+        capabilities() {
+          return {
+            readConversation: true,
+            readLimits: true
+          };
+        },
+        readConversation() {
+          return {
+            provider: "broken",
+            title: "Test",
+            url: null,
+            messages: []
+          };
+        }
+      }),
+    /implement readLimits/i
   );
 });

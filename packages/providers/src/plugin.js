@@ -48,6 +48,12 @@ export function validateProviderAdapter(adapter, expectedId = null) {
     );
   }
 
+  if (capabilities.readLimits && typeof adapter.readLimits !== "function") {
+    throw new TypeError(
+      `Provider adapter "${id}" declares readLimits but does not implement readLimits().`
+    );
+  }
+
   const validatedAdapter = {
     id,
     matches: adapter.matches.bind(adapter),
@@ -59,6 +65,10 @@ export function validateProviderAdapter(adapter, expectedId = null) {
 
   if (capabilities.insertContext) {
     validatedAdapter.insertContext = adapter.insertContext.bind(adapter);
+  }
+
+  if (capabilities.readLimits) {
+    validatedAdapter.readLimits = adapter.readLimits.bind(adapter);
   }
 
   return Object.freeze(validatedAdapter);

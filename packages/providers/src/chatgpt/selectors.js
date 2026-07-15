@@ -32,5 +32,10 @@ export const CHATGPT_SELECTORS = Object.freeze({
     'textarea#prompt-textarea',
     'textarea[data-testid="prompt-textarea"]',
     'main form textarea'
+  ]),
+  limitBanners: Object.freeze([
+    '[data-testid*="usage-banner"]',
+    '[data-testid*="limit-banner"]',
+    '[class*="usage-banner"]'
   ])
 });

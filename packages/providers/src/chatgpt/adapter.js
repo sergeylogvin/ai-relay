@@ -1,5 +1,6 @@
 import { CHATGPT_SELECTORS } from "./selectors.js";
 import { insertContextIntoComposer } from "../context-insertion.js";
+import { scanLimitSignals } from "../limits.js";
 
 function normalizeText(value) {
   return String(value ?? "")
@@ -84,7 +85,7 @@ export class ChatGPTAdapter {
       readConversation: true,
       insertContext: true,
       uploadFiles: false,
-      readLimits: false
+      readLimits: true
     });
   }
 
@@ -139,6 +140,12 @@ export class ChatGPTAdapter {
       root,
       selectors: CHATGPT_SELECTORS.composer,
       context
+    });
+  }
+
+  readLimits(root = document) {
+    return scanLimitSignals(root, {
+      bannerSelectors: CHATGPT_SELECTORS.limitBanners
     });
   }
 

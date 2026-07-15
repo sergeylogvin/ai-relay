@@ -74,6 +74,12 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         url: window.location.href,
         capturedAt
       });
+      const providerLimits = registry.supports(
+        window.location.href,
+        "readLimits"
+      )
+        ? registry.readLimits(window.location.href, document)
+        : [];
 
       const enrichedConversation = {
         ...conversation,
@@ -115,7 +121,10 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
           messageCount: conversation.messages.length,
           model: metadata.model,
           conversationId: metadata.conversationId,
-          metadata,
+          metadata: {
+            ...metadata,
+            providerLimits
+          },
           snapshot,
           handoff,
           files: exported.files,

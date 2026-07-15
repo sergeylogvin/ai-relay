@@ -1,5 +1,6 @@
 import { CLAUDE_SELECTORS } from "./selectors.js";
 import { insertContextIntoComposer } from "../context-insertion.js";
+import { scanLimitSignals } from "../limits.js";
 
 function normalizeText(value) {
   return String(value ?? "")
@@ -153,7 +154,7 @@ export class ClaudeAdapter {
       readConversation: true,
       insertContext: true,
       uploadFiles: false,
-      readLimits: false
+      readLimits: true
     });
   }
 
@@ -225,6 +226,12 @@ export class ClaudeAdapter {
       root,
       selectors: CLAUDE_SELECTORS.composer,
       context
+    });
+  }
+
+  readLimits(root = document) {
+    return scanLimitSignals(root, {
+      bannerSelectors: CLAUDE_SELECTORS.limitBanners
     });
   }
 

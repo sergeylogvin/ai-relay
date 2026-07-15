@@ -106,4 +106,14 @@ export class ProviderRegistry {
 
     return adapter.insertContext(context, root);
   }
+
+  readLimits(input, root = document) {
+    const adapter = this.require(input);
+
+    if (!adapter.capabilities().readLimits) {
+      throw new ProviderCapabilityError(adapter.id, "readLimits");
+    }
+
+    return adapter.readLimits(root);
+  }
 }
